@@ -1,5 +1,5 @@
 // app.js
-import { CONFIG } from './config.js';
+import { CONFIG } from './quest-config.js';
 import { questManager } from './quest-manager.js';
 
 let chatContainer;
