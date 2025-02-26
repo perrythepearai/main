@@ -25,26 +25,39 @@ jobs:
         username: ${{ secrets.VPS_USERNAME }}
         password: ${{ secrets.VPS_PASSWORD }}
         port: ${{ secrets.SSH_PORT }}
-        envs: GITHUB_PAT
+        envs: PAT
         script: |
           # Set environment variable
-          GITHUB_PAT=${{ secrets.GITHUB_PAT }}
+          PAT=${{ secrets.PAT }}
           
           # Navigate to application directory
           cd /var/www/html || { echo "Failed to navigate to app directory"; exit 1; }
           echo "Current directory: $(pwd)"
           
           # Configure Git to allow operations in this directory
-          git config --global --add safe.directory /var/www/html || { echo "Failed to set safe.directory"; exit 1; }
+          git config --global --add safe.directory /var/www/html || { echo "Warning: Failed to set safe.directory"; }
           
           # Check if it's a git repository
           if [ ! -d ".git" ]; then
             echo "Initializing git repository..."
             git init || { echo "Failed to initialize git repository"; exit 1; }
-            # Set the default branch to main
-            git branch -m main || { echo "Failed to rename branch"; exit 1; }
-            git remote add origin "https://${GITHUB_PAT}@github.com/perrythepearai/main.git" || { echo "Failed to add remote"; exit 1; }
+            echo "Renaming default branch to main..."
+            git branch -m main || { echo "Warning: Failed to rename branch"; }
           fi
+          
+          # Set or update the remote URL
+          echo "Configuring remote repository..."
+          if git remote | grep -q "origin"; then
+            # Remote exists, update URL
+            git remote set-url origin "https://${PAT}@github.com/perrythepearai/main.git" || { echo "Failed to update remote URL"; exit 1; }
+          else
+            # Remote doesn't exist, add it
+            git remote add origin "https://${PAT}@github.com/perrythepearai/main.git" || { echo "Failed to add remote"; exit 1; }
+          fi
+          
+          # Verify remote
+          echo "Verifying remote configuration..."
+          git remote -v
           
           # Pull latest code from repository
           echo "Pulling latest code..."
