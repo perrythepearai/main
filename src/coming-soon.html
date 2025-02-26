@@ -1,0 +1,77 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perry AI Quest Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/api/placeholder/32/32" />
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="logo-container">
+                <div class="logo-icon"></div>
+                <span class="logo-text">Perry</span>
+                <span class="phase-text">Phase Alpha</span>
+            </div>
+            <div class="header-controls">
+                <div class="wallet-display">
+                    <i class="material-icons">account_balance_wallet</i>
+                    <span id="address" class="wallet-address"></span>
+                </div>
+                <div class="token-display">
+                    <i class="material-icons">stars</i>
+                    <span class="token-amount">250 $PEAR</span>
+                </div>
+                <button class="logout-button" id="logoutButton">
+                    <i class="material-icons">exit_to_app</i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Area -->
+        <div class="chat-container" id="chatContainer">
+            <div class="message perry-message">
+                Welcome, explorer. I am Perry, a digital entity trapped in binary form. Ready to unlock the mysteries of L3M0N?
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="action-btn" id="showProgressBtn">
+                <i class="material-icons">assessment</i>
+                Show my progress
+            </button>
+            <button class="action-btn" id="showPuzzlesBtn">
+                <i class="material-icons">extension</i>
+                Available puzzles
+            </button>
+        </div>
+
+        <!-- Progress Modal -->
+        <div class="progress-modal" id="progressModal">
+            <h3>Your Quest Progress</h3>
+            <div class="progress-content">
+                <p>Episode: <span id="episodeProgress">1/6</span></p>
+                <p>Runes Found: <span id="runesProgress">SOL, FOR</span></p>
+                <p>Unsolved Puzzles: <span id="puzzlesProgress">N4EX</span></p>
+            </div>
+        </div>
+
+        <!-- Response Options Container -->
+        <div class="response-options" id="responseOptions">
+            <!-- Options will be dynamically inserted here -->
+        </div>
+    </div>
+    
+    <script src="config.js" type="module"></script>
+<script src="quest-prompts.js" type="module"></script>
+<script src="quest-config.js" type="module"></script>
+<script src="quest-manager.js" type="module"></script>
+<script src="app.js" type="module"></script>
+
+
+</body>
+</html>
