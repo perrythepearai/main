@@ -25,20 +25,25 @@ jobs:
         username: ${{ secrets.VPS_USERNAME }}
         password: ${{ secrets.VPS_PASSWORD }}
         port: ${{ secrets.SSH_PORT }}
-        envs: PAT
+        envs: GITHUB_PAT
         script: |
           # Set environment variable
-          PAT=${{ secrets.PAT }}
+          GITHUB_PAT=${{ secrets.GITHUB_PAT }}
           
           # Navigate to application directory
           cd /var/www/html || { echo "Failed to navigate to app directory"; exit 1; }
           echo "Current directory: $(pwd)"
           
+          # Configure Git to allow operations in this directory
+          git config --global --add safe.directory /var/www/html || { echo "Failed to set safe.directory"; exit 1; }
+          
           # Check if it's a git repository
           if [ ! -d ".git" ]; then
             echo "Initializing git repository..."
             git init || { echo "Failed to initialize git repository"; exit 1; }
-            git remote add origin "https://${PAT}@github.com/perrythepearai/main.git" || { echo "Failed to add remote"; exit 1; }
+            # Set the default branch to main
+            git branch -m main || { echo "Failed to rename branch"; exit 1; }
+            git remote add origin "https://${GITHUB_PAT}@github.com/perrythepearai/main.git" || { echo "Failed to add remote"; exit 1; }
           fi
           
           # Pull latest code from repository
