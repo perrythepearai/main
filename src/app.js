@@ -64,4 +64,74 @@ async function initializeApp() {
   }
 }
 
-// Rest of your code remains the same...
+function addWelcomeMessage() {
+  if (chatContainer) {
+    const welcomeDiv = document.createElement('div');
+    welcomeDiv.className = 'message system-message';
+    welcomeDiv.textContent = 'Welcome to the Green Mist quest. The garden awaits your exploration...';
+    chatContainer.appendChild(welcomeDiv);
+  }
+}
+
+function addSystemMessage(content) {
+  if (chatContainer) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message system-message';
+    messageDiv.innerHTML = `
+      <i class="material-icons">info</i>
+      ${content}
+    `;
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+}
+
+function setupEventListeners() {
+  // Setup MetaMask events
+  if (typeof window.ethereum !== 'undefined') {
+    window.ethereum.on('accountsChanged', handleAccountChange);
+    window.ethereum.on('chainChanged', () => window.location.reload());
+  }
+  
+  // Add logout button handler
+  const logoutButton = document.getElementById('logoutButton');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', handleLogout);
+  }
+}
+
+async function handleAccountChange(accounts) {
+  const storedWallet = localStorage.getItem('walletAddress');
+  if (accounts.length === 0 ||
+    accounts[0].toLowerCase() !== storedWallet.toLowerCase()) {
+    await handleLogout();
+  }
+}
+
+async function handleLogout() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('walletAddress');
+  localStorage.removeItem('questState');
+  
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      window.ethereum.removeListener('accountsChanged', handleAccountChange);
+      if (window.ethereum.disconnect) {
+        await window.ethereum.disconnect();
+      }
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+    }
+  }
+  
+  window.location.replace('/');
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+  initializeElements();
+  await initializeApp();
+});
+
+// Make questManager available globally for debugging
+window.questManager = questManager;
