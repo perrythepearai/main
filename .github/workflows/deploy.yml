@@ -27,7 +27,7 @@ jobs:
         port: ${{ secrets.SSH_PORT }}
         script: |
           # Navigate to application directory
-          cd /vae/www/html
+          cd /var/www/html
           
           # Pull latest code from repository
           echo "Pulling latest code..."
