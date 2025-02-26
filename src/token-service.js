@@ -32,6 +32,7 @@ export class TokenService {
     this.masterWalletAddress = CONFIG.MASTER_WALLET_ADDRESS;
   }
 
+  // Connect to MetaMask and create a contract instance.
   async connect() {
     try {
       console.log('Attempting to connect to wallet...');
@@ -41,12 +42,8 @@ export class TokenService {
         await this.provider.send("eth_requestAccounts", []);
         this.signer = this.provider.getSigner();
         console.log('Creating contract instance...');
-        this.contract = new ethers.Contract(
-          this.tokenAddress,
-          ERC20_ABI,
-          this.signer
-        );
-        // Get token decimals (if available)
+        this.contract = new ethers.Contract(this.tokenAddress, ERC20_ABI, this.signer);
+        // Try to get token decimals from the contract.
         try {
           this.decimals = await this.contract.decimals();
           console.log('Token decimals:', this.decimals);
@@ -56,7 +53,6 @@ export class TokenService {
         console.log('Wallet connection successful');
         return true;
       } else {
-        console.error('MetaMask not available');
         throw new Error('MetaMask not available');
       }
     } catch (error) {
@@ -65,6 +61,7 @@ export class TokenService {
     }
   }
 
+  // Retrieve the user's $PEAR balance.
   async getPearBalance() {
     try {
       if (!this.contract) {
@@ -72,60 +69,55 @@ export class TokenService {
         if (!connected) return 0;
       }
       const balance = await this.contract.balanceOf(this.walletAddress);
-      const formattedBalance = ethers.utils.formatUnits(balance, this.decimals);
-      return Math.floor(parseFloat(formattedBalance)); // Return integer value
+      return Math.floor(parseFloat(ethers.utils.formatUnits(balance, this.decimals)));
     } catch (error) {
       console.error('Error fetching PEAR balance:', error);
       return 0;
     }
   }
   
+  // Deduct tokens by transferring them to the master wallet.
+  // Note: This transaction will prompt the user to sign via MetaMask.
   async deductTokens(amount = 100) {
     try {
       if (!this.contract) {
         const connected = await this.connect();
-        if (!connected) {
-          throw new Error('Could not connect to wallet');
-        }
+        if (!connected) throw new Error('Could not connect to wallet');
       }
-      if (!this.masterWalletAddress) {
-        throw new Error('Master wallet address not configured');
-      }
+      if (!this.masterWalletAddress) throw new Error('Master wallet address not configured');
+      
+      // Check if the user has sufficient balance.
       const balance = await this.contract.balanceOf(this.walletAddress);
       const formattedBalance = ethers.utils.formatUnits(balance, this.decimals);
       if (parseFloat(formattedBalance) < amount) {
         throw new Error(`Insufficient balance. You need at least ${amount} PEAR tokens.`);
       }
+      
+      // Convert the amount to token units.
       const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
-      // Note: This transaction will prompt the user to sign it via MetaMask.
       const tx = await this.contract.transfer(this.masterWalletAddress, tokenAmount);
       console.log('Transaction submitted:', tx.hash);
+      
       const receipt = await tx.wait();
       console.log('Transaction confirmed:', receipt);
+      
       const newBalance = await this.getPearBalance();
-      return {
-        success: true,
-        txHash: receipt.transactionHash,
-        remainingBalance: newBalance
-      };
+      return { success: true, txHash: receipt.transactionHash, remainingBalance: newBalance };
     } catch (error) {
       console.error('Token deduction error:', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to process token deduction'
-      };
+      return { success: false, error: error.message || 'Failed to process token deduction' };
     }
   }
-
+  
+  // Check how many tokens have been approved for spending.
   async checkAllowance() {
     try {
       if (!this.contract) {
         const connected = await this.connect();
         if (!connected) return 0;
       }
-      if (!this.masterWalletAddress) {
-        throw new Error('Master wallet address not configured');
-      }
+      if (!this.masterWalletAddress) throw new Error('Master wallet address not configured');
+      
       const allowance = await this.contract.allowance(this.walletAddress, this.masterWalletAddress);
       const formattedAllowance = ethers.utils.formatUnits(allowance, this.decimals);
       console.log('Current allowance:', formattedAllowance);
@@ -135,40 +127,40 @@ export class TokenService {
       return 0;
     }
   }
-
+  
+  // Approve tokens for future spending with a fallback manual gas limit.
   async approveTokenSpending(amount = 100000) {
     try {
       if (!this.contract) {
         const connected = await this.connect();
-        if (!connected) {
-          throw new Error('Could not connect to wallet');
-        }
+        if (!connected) throw new Error('Could not connect to wallet');
       }
+      
       const spenderAddress = this.masterWalletAddress;
-      if (!spenderAddress) {
-        throw new Error('Master wallet address not configured');
-      }
-      // Check if tokens are already approved in sufficient quantity
+      if (!spenderAddress) throw new Error('Master wallet address not configured');
+      
+      // Check if already enough tokens are approved.
       const currentAllowance = await this.checkAllowance();
       if (currentAllowance >= amount) {
         console.log('Already approved enough tokens:', currentAllowance);
-        return {
-          success: true,
-          txHash: 'already-approved'
-        };
+        return { success: true, txHash: 'already-approved' };
       }
-      // Convert amount to token units
-      const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
       
-      // Attempt to send the approval transaction
+      // Convert the approval amount to token units.
+      const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
       let tx;
+      
       try {
+        // Try submitting the approval transaction normally.
         tx = await this.contract.approve(spenderAddress, tokenAmount);
       } catch (error) {
-        // If gas estimation fails, try with a manual gas limit
-        if (error.code === 'UNPREDICTABLE_GAS_LIMIT' || error.message.includes("cannot estimate gas")) {
+        // If gas estimation fails, try again with a manual gas limit.
+        if (
+          error.code === 'UNPREDICTABLE_GAS_LIMIT' ||
+          error.message.includes('cannot estimate gas')
+        ) {
           console.warn('Gas estimation failed, retrying with manual gas limit');
-          const fallbackGasLimit = 100000; // Adjust as necessary
+          const fallbackGasLimit = 100000; // Adjust fallback gas limit as needed.
           tx = await this.contract.approve(spenderAddress, tokenAmount, { gasLimit: fallbackGasLimit });
         } else {
           throw error;
@@ -178,59 +170,48 @@ export class TokenService {
       console.log('Approval transaction submitted:', tx.hash);
       const receipt = await tx.wait();
       console.log('Approval confirmed:', receipt);
-      return {
-        success: true,
-        txHash: receipt.transactionHash
-      };
+      return { success: true, txHash: receipt.transactionHash };
     } catch (error) {
       console.error('Token approval error:', error);
-      // Hide detailed error information from the user
-      const userFriendlyError = "Token approval failed. Please try again later.";
-      return {
-        success: false,
-        error: userFriendlyError
-      };
+      // Return a generic message while logging the detailed error.
+      return { success: false, error: "Token approval failed. Please try again later." };
     }
   }
-
+  
+  // Transfer tokens that have been pre-approved.
   async transferPreApprovedTokens(amount = 100) {
     try {
       if (!this.contract) {
         const connected = await this.connect();
-        if (!connected) {
-          throw new Error('Could not connect to wallet');
-        }
+        if (!connected) throw new Error('Could not connect to wallet');
       }
+      
       const recipientAddress = this.masterWalletAddress;
-      if (!recipientAddress) {
-        throw new Error('Recipient address not configured');
-      }
+      if (!recipientAddress) throw new Error('Recipient address not configured');
+      
       const balance = await this.contract.balanceOf(this.walletAddress);
       const formattedBalance = ethers.utils.formatUnits(balance, this.decimals);
       if (parseFloat(formattedBalance) < amount) {
         throw new Error(`Insufficient balance. You need at least ${amount} PEAR tokens.`);
       }
+      
       const allowance = await this.checkAllowance();
       if (allowance < amount) {
         throw new Error(`Insufficient allowance. Please approve token spending first.`);
       }
+      
       const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
       const tx = await this.contract.transfer(recipientAddress, tokenAmount);
       console.log('Transfer transaction submitted:', tx.hash);
+      
       const receipt = await tx.wait();
       console.log('Transfer confirmed:', receipt);
+      
       const newBalance = await this.getPearBalance();
-      return {
-        success: true,
-        txHash: receipt.transactionHash,
-        remainingBalance: newBalance
-      };
+      return { success: true, txHash: receipt.transactionHash, remainingBalance: newBalance };
     } catch (error) {
       console.error('Token transfer error:', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to transfer tokens'
-      };
+      return { success: false, error: error.message || 'Failed to transfer tokens' };
     }
   }
 }
