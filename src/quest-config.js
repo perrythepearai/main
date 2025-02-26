@@ -1,7 +1,7 @@
 // config.js
 export const CONFIG = {
     OPENAI: {
-        API_KEY: process.env.OPENAI_API_KEY || 'KEY', 
+        API_KEY: import.meta.env.VITE_OPENAI_API_KEY || '', // Vite-specific env variable access
         API_ENDPOINT: 'https://api.openai.com/v1/chat/completions',
         MODEL: 'gpt-4',
         TEMPERATURE: 0.7
