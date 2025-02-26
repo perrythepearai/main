@@ -3,6 +3,8 @@ import { createAppKit } from '@reown/appkit';
 import { Ethers5Adapter } from '@reown/appkit-adapter-ethers5';
 import { mainnet, arbitrum } from '@reown/appkit/networks';
 import { saveUserWallet } from './api';
+import 'dotenv/config';  // Option 1: short syntax
+
 
 console.log('🚀 Initializing main.js v1.0.1');
 
@@ -16,7 +18,7 @@ const logError = (context, error) => {
     });
 };
 
-const projectId = '11b4086847ddfa31de13cf2543cf15f1';
+const projectId = process.env.REOWN_PROJECT_ID || 'fallbackProjectId';
 const metadata = {
     name: 'PerrypearAI',
     description: 'AppKit Example',

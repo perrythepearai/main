@@ -3,11 +3,12 @@ import pg from 'pg';
 const { Pool } = pg;
 
 const pool = new Pool({
-    connectionString: 'postgresql://neondb_owner:npg_rk3U8oqeyxXW@ep-summer-water-a8f7q69q.eastus2.azure.neon.tech/neondb?sslmode=require',
+    connectionString: process.env.DATABASE_URL, 
     ssl: {
         rejectUnauthorized: false
     }
 });
+
 
 // Error logging helper
 const logError = (error, context) => {
