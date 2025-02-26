@@ -73,6 +73,7 @@ jobs:
           echo "Building the Vite application..."
           npm run build || { echo "Failed to build application"; exit 1; }
           
+          
           # Backup current version (if it exists)
           if [ -d "dist" ]; then
             mkdir -p backup
