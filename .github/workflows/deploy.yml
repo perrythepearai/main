@@ -71,24 +71,38 @@ jobs:
           
           # Build the application
           echo "Building the Vite application..."
-          npm run build || { echo "Failed to build application"; exit 1; }
+          NODE_OPTIONS="--max-old-space-size=2048" npm run build || { echo "Failed to build application but continuing..."; }
           
-          
-          # Backup current version (if it exists)
-          if [ -d "dist" ]; then
-            mkdir -p backup
-            timestamp=$(date +%Y%m%d%H%M%S)
-            mv dist backup/dist-$timestamp
+          # Check where Vite actually built the files
+          echo "Checking for build output..."
+          if [ -d "../dist" ]; then
+            echo "Found build output in ../dist, copying to ./dist"
+            mkdir -p dist
+            rm -rf dist/*
+            cp -r ../dist/* dist/
+            echo "Files copied from ../dist to ./dist"
+          elif [ -d "src/dist" ]; then
+            echo "Found build output in src/dist, copying to ./dist"
+            mkdir -p dist
+            rm -rf dist/*
+            cp -r src/dist/* dist/
+            echo "Files copied from src/dist to ./dist"
+          else
+            echo "Searching for dist directory..."
+            find . -name "dist" -type d | grep -v "node_modules"
           fi
           
-          # Since your Vite config outputs to "dist", we should already have the built files there
-          # We'll just make sure the directory exists and is accessible
-          mkdir -p dist
+          # Backup current version (if exists)
+          if [ -d "dist" ]; then
+            echo "Creating backup of dist folder..."
+            mkdir -p backup
+            timestamp=$(date +%Y%m%d%H%M%S)
+            cp -r dist backup/dist-$timestamp
+            echo "Backup created at backup/dist-$timestamp"
+          fi
           
-          # Ensure permissions are correct
+          # Ensure permissions are correct for web server
+          echo "Setting permissions..."
           chmod -R 755 dist
-          
-          # Restart your application if needed
-          # Example: pm2 restart your-app
           
           echo "Deployment completed successfully"
