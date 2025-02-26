@@ -1,4 +1,3 @@
-// config.js
 export const CONFIG = {
     OPENAI: {
         API_KEY: import.meta.env.VITE_OPENAI_API_KEY || '', // Vite-specific env variable access

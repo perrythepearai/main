@@ -1,6 +1,6 @@
 // app.js
-import { CONFIG } from './quest-config.js';
 import { questManager } from './quest-manager.js';
+import { CONFIG } from './quest-config.js';
 
 let chatContainer;
 let responseOptions;

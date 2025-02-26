@@ -3,8 +3,8 @@ import { createAppKit } from '@reown/appkit';
 import { Ethers5Adapter } from '@reown/appkit-adapter-ethers5';
 import { mainnet, arbitrum } from '@reown/appkit/networks';
 import { saveUserWallet } from './api';
-import 'dotenv/config';  // Option 1: short syntax
-
+import dotenv from 'dotenv';
+dotenv.config();
 
 console.log('🚀 Initializing main.js v1.0.1');
 
