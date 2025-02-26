@@ -25,13 +25,27 @@ jobs:
         username: ${{ secrets.VPS_USERNAME }}
         password: ${{ secrets.VPS_PASSWORD }}
         port: ${{ secrets.SSH_PORT }}
+        envs: PAT
         script: |
+          # Set environment variable
+          PAT=${{ secrets.PAT }}
+          
           # Navigate to application directory
-          cd /var/www/html
+          cd /var/www/html || { echo "Failed to navigate to app directory"; exit 1; }
+          echo "Current directory: $(pwd)"
+          
+          # Check if it's a git repository
+          if [ ! -d ".git" ]; then
+            echo "Initializing git repository..."
+            git init || { echo "Failed to initialize git repository"; exit 1; }
+            git remote add origin "https://${PAT}@github.com/perrythepearai/main.git" || { echo "Failed to add remote"; exit 1; }
+          fi
           
           # Pull latest code from repository
           echo "Pulling latest code..."
-          git pull origin main || { echo "Failed to pull code"; exit 1; }
+          # Force fetch and reset to match remote exactly
+          git fetch origin main || { echo "Failed to fetch code"; exit 1; }
+          git reset --hard origin/main || { echo "Failed to reset to latest code"; exit 1; }
           
           # Install dependencies
           echo "Installing dependencies..."
