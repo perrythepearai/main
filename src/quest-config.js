@@ -1,6 +1,4 @@
-
-
-// config.js
+// quest-config.js
 export const CONFIG = {
     // OpenAI Configuration
     OPENAI: {
@@ -32,8 +30,19 @@ export const CONFIG = {
         PERRY: 'perry',
         USER: 'user',
         SYSTEM: 'system'
-    }
+    },
+    
+    // Token Configuration
+    TOKEN: {
+        PEAR_TOKEN_ADDRESS: '0xc760a77356563560260c9E571AF6dbbab396bE38',
+        REQUIRED_CHAIN_ID: '0x89', // Polygon Mainnet
+        INTERACTION_COST: 100
+    },
+    
+    // Master wallet for receiving tokens
+    MASTER_WALLET_ADDRESS: import.meta.env.VITE_MASTER_WALLET_ADDRESS || '0x0000000000000000000000000000000000000000' // Replace with fallback address
 };
+
 
 // System Prompts
 window.SYSTEM_PROMPTS = {

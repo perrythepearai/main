@@ -505,3 +505,37 @@ body {
 .puzzle-input button:hover {
     background-color: var(--color-accent-secondary);
 }
+
+
+.refresh-button {
+
+    background-color: rgba(138, 79, 255, 0.1);
+border-radius: 90px;
+color: var(--color-accent-primary);
+}
+
+/* Buy Token Button Styling */
+.buy-token-btn {
+    background-color: rgba(138, 79, 255, 0.1);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-right: 10px;
+}
+
+.buy-token-btn:hover {
+    background-color: rgba(138, 79, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: var(--elevation-2);
+}
+
+.buy-token-btn .material-icons {
+    font-size: 18px;
+}

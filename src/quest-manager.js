@@ -1,4 +1,4 @@
-// quest-manager.js - Part 1: Core and Initialization
+// quest-manager.js
 import { CONFIG } from './quest-config.js';
 import { QUEST_PROMPTS } from './quest-prompts.js';
 

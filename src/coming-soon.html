@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/api/placeholder/32/32" />
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
     <div class="dashboard">
@@ -17,6 +18,10 @@
                 <span class="phase-text">Phase Alpha</span>
             </div>
             <div class="header-controls">
+                <a href="https://app.uniswap.org/explore/tokens/polygon/0xc760a77356563560260c9e571af6dbbab396be38" target="_blank" class="buy-token-btn">
+                    <i class="material-icons">shopping_cart</i>
+                    <span>Buy $PEAR</span>
+                </a>
                 <div class="wallet-display">
                     <i class="material-icons">account_balance_wallet</i>
                     <span id="address" class="wallet-address"></span>
@@ -25,6 +30,9 @@
                     <i class="material-icons">stars</i>
                     <span class="token-amount">250 $PEAR</span>
                 </div>
+                <button id="refreshBalanceBtn" class="refresh-button" title="Refresh Balance">
+                    <i class="material-icons">refresh</i>
+                </button>
                 <button class="logout-button" id="logoutButton">
                     <i class="material-icons">exit_to_app</i>
                 </button>
@@ -65,12 +73,11 @@
             <!-- Options will be dynamically inserted here -->
         </div>
     </div>
-    
-<script src="quest-prompts.js" type="module"></script>
-<script src="quest-config.js" type="module"></script>
-<script src="quest-manager.js" type="module"></script>
-<script src="app.js" type="module"></script>
 
-
+    <script src="quest-prompts.js" type="module"></script>
+    <script src="quest-config.js" type="module"></script>
+    <script src="token-service.js" type="module"></script>
+    <script src="quest-manager.js" type="module"></script>
+    <script src="app.js" type="module"></script>
 </body>
 </html>
