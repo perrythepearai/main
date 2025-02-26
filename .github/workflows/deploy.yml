@@ -1,0 +1,61 @@
+name: Deploy Vite App
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+        cache: 'npm'
+    
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        password: ${{ secrets.VPS_PASSWORD }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          # Navigate to application directory
+          cd /vae/www/html
+          
+          # Pull latest code from repository
+          echo "Pulling latest code..."
+          git pull origin main || { echo "Failed to pull code"; exit 1; }
+          
+          # Install dependencies
+          echo "Installing dependencies..."
+          npm ci || { echo "Failed to install dependencies"; exit 1; }
+          
+          # Build the application
+          echo "Building the Vite application..."
+          npm run build || { echo "Failed to build application"; exit 1; }
+          
+          # Backup current version (if it exists)
+          if [ -d "dist" ]; then
+            mkdir -p backup
+            timestamp=$(date +%Y%m%d%H%M%S)
+            mv dist backup/dist-$timestamp
+          fi
+          
+          # Since your Vite config outputs to "dist", we should already have the built files there
+          # We'll just make sure the directory exists and is accessible
+          mkdir -p dist
+          
+          # Ensure permissions are correct
+          chmod -R 755 dist
+          
+          # Restart your application if needed
+          # Example: pm2 restart your-app
+          
+          echo "Deployment completed successfully"

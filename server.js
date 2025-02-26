@@ -43,7 +43,7 @@ const pool = new pg.Pool({
 // Test database connection
 pool.connect((err, client, release) => {
     if (err) {
-        console.error('❌ Database connection issue:', err);
+        console.error('❌ Database connection:', err);
         return;
     }
     console.log('✅ Database connected successfully');
