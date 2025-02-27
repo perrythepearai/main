@@ -36,11 +36,9 @@ export const CONFIG = {
     TOKEN: {
         PEAR_TOKEN_ADDRESS: '0xc760a77356563560260c9E571AF6dbbab396bE38',
         REQUIRED_CHAIN_ID: '0x89', // Polygon Mainnet
-        INTERACTION_COST: 100
-    },
-    
-    // Master wallet for receiving tokens
-    MASTER_WALLET_ADDRESS: import.meta.env.VITE_MASTER_WALLET_ADDRESS,
+        INTERACTION_COST: 100,
+        MASTER_WALLET_ADDRESS: import.meta.env.VITE_MASTER_WALLET_ADDRESS,
+      },
 };
 
 
