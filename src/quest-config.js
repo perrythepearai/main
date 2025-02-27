@@ -40,7 +40,7 @@ export const CONFIG = {
     },
     
     // Master wallet for receiving tokens
-    MASTER_WALLET_ADDRESS: import.meta.env.VITE_MASTER_WALLET_ADDRESS || '0x0000000000000000000000000000000000000000' // Replace with fallback address
+    MASTER_WALLET_ADDRESS: import.meta.env.VITE_MASTER_WALLET_ADDRESS,
 };
 
 
