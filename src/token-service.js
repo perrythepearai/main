@@ -2,8 +2,8 @@
 import { ethers } from 'ethers';
 import { CONFIG } from './quest-config.js';
 
-// Infura endpoint for Polygon Mainnet
-const INFURA_URL = "https://polygon-mainnet.infura.io/v3/41df926badb4495cb10f23edc3b0bba6";
+// Use the Infura RPC URL from the environment
+const INFURA_URL = import.meta.env.VITE_INFURA_URL || "";
 
 // PEAR Token contract address from configuration
 const PEAR_TOKEN_ADDRESS = CONFIG.TOKEN.PEAR_TOKEN_ADDRESS;

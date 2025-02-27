@@ -34,9 +34,10 @@ const logError = (error, context) => {
     console.error('=====================');
 };
 
-// Configure PostgreSQL pool with SSL required
+
+// Configure PostgreSQL pool with environment variables
 const pool = new pg.Pool({
-    connectionString: 'postgresql://neondb_owner:npg_rk3U8oqeyxXW@ep-summer-water-a8f7q69q.eastus2.azure.neon.tech/neondb',
+    connectionString: process.env.DATABASE_URL || '',
     ssl: {
         rejectUnauthorized: false
     }
