@@ -2,54 +2,48 @@
 import { ethers } from 'ethers';
 import { CONFIG } from './quest-config.js';
 
-// PEAR Token contract address on Polygon
+// Infura endpoint for Polygon Mainnet
+const INFURA_URL = "https://polygon-mainnet.infura.io/v3/41df926badb4495cb10f23edc3b0bba6";
+
+// PEAR Token contract address from configuration
 const PEAR_TOKEN_ADDRESS = CONFIG.TOKEN.PEAR_TOKEN_ADDRESS;
 
-// Basic ERC20 ABI for token balance and transfers
+// Basic ERC20 ABI for balance, transfers, and approvals
 const ERC20_ABI = [
-  // Read-only functions
   "function balanceOf(address owner) view returns (uint256)",
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
   "function allowance(address owner, address spender) view returns (uint256)",
-  
-  // Write functions
   "function transfer(address to, uint amount) returns (bool)",
   "function approve(address spender, uint256 amount) returns (bool)",
-  
-  // Events
   "event Transfer(address indexed from, address indexed to, uint amount)",
   "event Approval(address indexed owner, address indexed spender, uint256 value)"
 ];
-
-// Replace this with your Infura URL
-const INFURA_URL = "https://polygon-mainnet.infura.io/v3/41df926badb4495cb10f23edc3b0bba6";
 
 export class TokenService {
   constructor(walletAddress) {
     this.walletAddress = walletAddress;
     this.tokenAddress = PEAR_TOKEN_ADDRESS;
-    this.decimals = 18; // Default ERC20 decimals; will update after connecting.
-    // Create a provider using Infura
-    this.provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+    this.decimals = 18; // Default decimals; updated later from contract
+    this.masterWalletAddress = CONFIG.TOKEN.MASTER_WALLET_ADDRESS;
     
-    // IMPORTANT: To auto-sign transactions using Infura,
-    // you must supply a private key. NEVER expose a private key in production client‑side code.
-    if (!CONFIG.PRIVATE_KEY) {
-      throw new Error("No private key provided in configuration");
+    // Use the wallet provider from MetaMask for signing transactions
+    if (!window.ethereum) {
+      throw new Error("MetaMask not available");
     }
-    this.signer = new ethers.Wallet(CONFIG.PRIVATE_KEY, this.provider);
-    
-    // Create the contract instance connected with the signer
+    this.walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+    this.signer = this.walletProvider.getSigner();
     this.contract = new ethers.Contract(this.tokenAddress, ERC20_ABI, this.signer);
-    this.masterWalletAddress = CONFIG.MASTER_WALLET_ADDRESS;
+    
+    // Use Infura provider for reliable gas estimation (read-only)
+    this.infuraProvider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+    this.contractForEstimation = new ethers.Contract(this.tokenAddress, ERC20_ABI, this.infuraProvider);
   }
-
-  // In this Infura-based setup, connect simply verifies the connection.
+  
+  // Connect to MetaMask and retrieve token decimals
   async connect() {
     try {
-      const network = await this.provider.getNetwork();
-      console.log("Connected to network:", network);
+      await this.walletProvider.send("eth_requestAccounts", []);
       try {
         this.decimals = await this.contract.decimals();
         console.log("Token decimals:", this.decimals);
@@ -58,18 +52,14 @@ export class TokenService {
       }
       return true;
     } catch (error) {
-      console.error("Error connecting to Infura:", error);
+      console.error("Error connecting to wallet:", error);
       return false;
     }
   }
-
+  
+  // Get the current PEAR token balance of the user
   async getPearBalance() {
     try {
-      // Ensure connection is established.
-      if (!this.contract) {
-        const connected = await this.connect();
-        if (!connected) return 0;
-      }
       const balance = await this.contract.balanceOf(this.walletAddress);
       return Math.floor(parseFloat(ethers.utils.formatUnits(balance, this.decimals)));
     } catch (error) {
@@ -78,112 +68,44 @@ export class TokenService {
     }
   }
   
-  async deductTokens(amount = 100) {
-    try {
-      if (!this.contract) {
-        const connected = await this.connect();
-        if (!connected) throw new Error("Could not connect to network");
-      }
-      
-      if (!this.masterWalletAddress) throw new Error("Master wallet address not configured");
-      
-      const balance = await this.contract.balanceOf(this.walletAddress);
-      const formattedBalance = ethers.utils.formatUnits(balance, this.decimals);
-      if (parseFloat(formattedBalance) < amount) {
-        throw new Error(`Insufficient balance. You need at least ${amount} PEAR tokens.`);
-      }
-      
-      const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
-      const tx = await this.contract.transfer(this.masterWalletAddress, tokenAmount);
-      console.log("Transaction submitted:", tx.hash);
-      const receipt = await tx.wait();
-      console.log("Transaction confirmed:", receipt);
-      const newBalance = await this.getPearBalance();
-      return {
-        success: true,
-        txHash: receipt.transactionHash,
-        remainingBalance: newBalance
-      };
-    } catch (error) {
-      console.error("Token deduction error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to process token deduction"
-      };
-    }
-  }
-
-  async checkAllowance() {
-    try {
-      if (!this.contract) {
-        const connected = await this.connect();
-        if (!connected) return 0;
-      }
-      if (!this.masterWalletAddress) throw new Error("Master wallet address not configured");
-      const allowance = await this.contract.allowance(this.walletAddress, this.masterWalletAddress);
-      const formattedAllowance = ethers.utils.formatUnits(allowance, this.decimals);
-      console.log("Current allowance:", formattedAllowance);
-      return parseFloat(formattedAllowance);
-    } catch (error) {
-      console.error("Error checking allowance:", error);
-      return 0;
-    }
-  }
-
+  // Approve tokens for spending, using Infura for gas estimation
   async approveTokenSpending(amount = 100000) {
     try {
-      if (!this.contract) {
-        const connected = await this.connect();
-        if (!connected) throw new Error("Could not connect to network");
-      }
+      if (!this.masterWalletAddress) throw new Error("Master wallet address not configured");
       
-      const spenderAddress = this.masterWalletAddress;
-      if (!spenderAddress) throw new Error("Master wallet address not configured");
-      
-      const currentAllowance = await this.checkAllowance();
-      if (currentAllowance >= amount) {
-        console.log("Already approved enough tokens:", currentAllowance);
-        return {
-          success: true,
-          txHash: "already-approved"
-        };
+      const currentAllowance = await this.contract.allowance(this.walletAddress, this.masterWalletAddress);
+      const formattedAllowance = ethers.utils.formatUnits(currentAllowance, this.decimals);
+      console.log("Current allowance:", formattedAllowance);
+      if (parseFloat(formattedAllowance) >= amount) {
+        console.log("Already approved enough tokens:", formattedAllowance);
+        return { success: true, txHash: "already-approved" };
       }
       
       const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
-      let tx;
-      try {
-        tx = await this.contract.approve(spenderAddress, tokenAmount);
-      } catch (error) {
-        // If gas estimation fails, you can catch it here.
-        // In this setup, we are not using a manual gas limit.
-        throw error;
-      }
       
+      // Estimate gas using the Infura provider
+      const estimatedGas = await this.contractForEstimation.estimateGas.approve(this.masterWalletAddress, tokenAmount);
+      console.log("Estimated Gas:", estimatedGas.toString());
+      
+      // Send the approval transaction using the wallet provider (user signs it)
+      const tx = await this.contract.approve(this.masterWalletAddress, tokenAmount, {
+        gasLimit: estimatedGas
+      });
       console.log("Approval transaction submitted:", tx.hash);
+      
       const receipt = await tx.wait();
       console.log("Approval confirmed:", receipt);
-      return {
-        success: true,
-        txHash: receipt.transactionHash
-      };
+      return { success: true, txHash: receipt.transactionHash };
     } catch (error) {
       console.error("Token approval error:", error);
-      return {
-        success: false,
-        error: "Token approval failed. Please try again later."
-      };
+      return { success: false, error: "Token approval failed. Please try again later." };
     }
   }
-
-  async transferPreApprovedTokens(amount = 100) {
+  
+  // Deduct tokens by transferring them to the master wallet; uses Infura for gas estimation
+  async deductTokens(amount = 100) {
     try {
-      if (!this.contract) {
-        const connected = await this.connect();
-        if (!connected) throw new Error("Could not connect to network");
-      }
-      
-      const recipientAddress = this.masterWalletAddress;
-      if (!recipientAddress) throw new Error("Recipient address not configured");
+      if (!this.masterWalletAddress) throw new Error("Master wallet address not configured");
       
       const balance = await this.contract.balanceOf(this.walletAddress);
       const formattedBalance = ethers.utils.formatUnits(balance, this.decimals);
@@ -191,28 +113,26 @@ export class TokenService {
         throw new Error(`Insufficient balance. You need at least ${amount} PEAR tokens.`);
       }
       
-      const allowance = await this.checkAllowance();
-      if (allowance < amount) {
-        throw new Error(`Insufficient allowance. Please approve token spending first.`);
-      }
-      
       const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
-      const tx = await this.contract.transfer(recipientAddress, tokenAmount);
-      console.log("Transfer transaction submitted:", tx.hash);
+      
+      // Estimate gas using the Infura provider
+      const estimatedGas = await this.contractForEstimation.estimateGas.transfer(this.masterWalletAddress, tokenAmount);
+      console.log("Estimated Gas for transfer:", estimatedGas.toString());
+      
+      // Send the transaction using the wallet provider (user signs it)
+      const tx = await this.contract.transfer(this.masterWalletAddress, tokenAmount, {
+        gasLimit: estimatedGas
+      });
+      console.log("Transaction submitted:", tx.hash);
+      
       const receipt = await tx.wait();
-      console.log("Transfer confirmed:", receipt);
+      console.log("Transaction confirmed:", receipt);
+      
       const newBalance = await this.getPearBalance();
-      return {
-        success: true,
-        txHash: receipt.transactionHash,
-        remainingBalance: newBalance
-      };
+      return { success: true, txHash: receipt.transactionHash, remainingBalance: newBalance };
     } catch (error) {
-      console.error("Token transfer error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to transfer tokens"
-      };
+      console.error("Token deduction error:", error);
+      return { success: false, error: error.message || "Failed to process token deduction" };
     }
   }
 }

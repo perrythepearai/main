@@ -52,7 +52,6 @@ async function checkNetwork() {
 
   try {
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    
     if (chainId !== CONFIG.TOKEN.REQUIRED_CHAIN_ID) {
       addSystemMessage(`
         ⚠️ Incorrect network detected. 
@@ -324,7 +323,7 @@ async function initializeApp() {
       throw new Error('OpenAI API key not configured correctly');
     }
     
-    // Initialize token service
+    // Initialize token service using the user's wallet address
     tokenService = new TokenService(walletAddress);
     
     // Initialize token balance and approval
@@ -396,7 +395,7 @@ async function handleLogout() {
   window.location.replace('/');
 }
 
-// Create enhanced instance
+// Create enhanced quest manager instance
 const enhancedQuestManager = new EnhancedQuestManager();
 
 // Global references
