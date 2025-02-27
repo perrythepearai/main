@@ -24,10 +24,10 @@ export class TokenService {
   constructor(walletAddress) {
     this.walletAddress = walletAddress;
     this.tokenAddress = PEAR_TOKEN_ADDRESS;
-    this.decimals = 18; // Default decimals; updated later from contract
-    this.masterWalletAddress = CONFIG.TOKEN.MASTER_WALLET_ADDRESS;
+    this.decimals = 18; // Default decimals; will be updated after connection.
+    this.masterWalletAddress = CONFIG.TOKEN.MASTER_WALLET_ADDRESS; // Ensure this is set in your config.
     
-    // Use the wallet provider from MetaMask for signing transactions
+    // Use the wallet provider from MetaMask for signing transactions.
     if (!window.ethereum) {
       throw new Error("MetaMask not available");
     }
@@ -40,7 +40,7 @@ export class TokenService {
     this.contractForEstimation = new ethers.Contract(this.tokenAddress, ERC20_ABI, this.infuraProvider);
   }
   
-  // Connect to MetaMask and retrieve token decimals
+  // Connect to MetaMask and retrieve token decimals.
   async connect() {
     try {
       await this.walletProvider.send("eth_requestAccounts", []);
@@ -57,7 +57,7 @@ export class TokenService {
     }
   }
   
-  // Get the current PEAR token balance of the user
+  // Get the current PEAR token balance of the user.
   async getPearBalance() {
     try {
       const balance = await this.contract.balanceOf(this.walletAddress);
@@ -68,10 +68,11 @@ export class TokenService {
     }
   }
   
-  // Approve tokens for spending, using Infura for gas estimation
+  // Approve tokens for spending, using Infura for gas estimation.
   async approveTokenSpending(amount = 100000) {
     try {
-      if (!this.masterWalletAddress) throw new Error("Master wallet address not configured");
+      if (!this.masterWalletAddress) 
+        throw new Error("Master wallet address not configured");
       
       const currentAllowance = await this.contract.allowance(this.walletAddress, this.masterWalletAddress);
       const formattedAllowance = ethers.utils.formatUnits(currentAllowance, this.decimals);
@@ -83,11 +84,26 @@ export class TokenService {
       
       const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
       
-      // Estimate gas using the Infura provider
-      const estimatedGas = await this.contractForEstimation.estimateGas.approve(this.masterWalletAddress, tokenAmount);
-      console.log("Estimated Gas:", estimatedGas.toString());
+      // Estimate gas using the Infura provider.
+      let estimatedGas;
+      try {
+        estimatedGas = await this.contractForEstimation.estimateGas.approve(this.masterWalletAddress, tokenAmount);
+        console.log("Estimated Gas:", estimatedGas.toString());
+      } catch (gasError) {
+        console.warn("Gas estimation failed for approve, attempting callStatic...", gasError);
+        // Run callStatic to simulate the approval.
+        try {
+          await this.contract.callStatic.approve(this.masterWalletAddress, tokenAmount);
+          // If simulation passes, fallback to a default gas limit.
+          estimatedGas = ethers.BigNumber.from("100000");
+          console.warn("Falling back to default gas limit for approve:", estimatedGas.toString());
+        } catch (staticError) {
+          console.error("callStatic simulation failed for approve:", staticError);
+          throw new Error("Approval simulation failed: " + staticError.message);
+        }
+      }
       
-      // Send the approval transaction using the wallet provider (user signs it)
+      // Send the approval transaction using the wallet provider (user signs it).
       const tx = await this.contract.approve(this.masterWalletAddress, tokenAmount, {
         gasLimit: estimatedGas
       });
@@ -98,14 +114,15 @@ export class TokenService {
       return { success: true, txHash: receipt.transactionHash };
     } catch (error) {
       console.error("Token approval error:", error);
-      return { success: false, error: "Token approval failed. Please try again later." };
+      return { success: false, error: "Token approval failed. " + error.message };
     }
   }
   
-  // Deduct tokens by transferring them to the master wallet; uses Infura for gas estimation
+  // Deduct tokens by transferring them to the master wallet; uses Infura for gas estimation.
   async deductTokens(amount = 100) {
     try {
-      if (!this.masterWalletAddress) throw new Error("Master wallet address not configured");
+      if (!this.masterWalletAddress) 
+        throw new Error("Master wallet address not configured");
       
       const balance = await this.contract.balanceOf(this.walletAddress);
       const formattedBalance = ethers.utils.formatUnits(balance, this.decimals);
@@ -115,11 +132,26 @@ export class TokenService {
       
       const tokenAmount = ethers.utils.parseUnits(amount.toString(), this.decimals);
       
-      // Estimate gas using the Infura provider
-      const estimatedGas = await this.contractForEstimation.estimateGas.transfer(this.masterWalletAddress, tokenAmount);
-      console.log("Estimated Gas for transfer:", estimatedGas.toString());
+      // Estimate gas using the Infura provider.
+      let estimatedGas;
+      try {
+        estimatedGas = await this.contractForEstimation.estimateGas.transfer(this.masterWalletAddress, tokenAmount);
+        console.log("Estimated Gas for transfer:", estimatedGas.toString());
+      } catch (gasError) {
+        console.warn("Gas estimation failed for transfer, attempting callStatic...", gasError);
+        // Run callStatic to simulate the transfer.
+        try {
+          await this.contract.callStatic.transfer(this.masterWalletAddress, tokenAmount);
+          // If simulation passes, fallback to a default gas limit.
+          estimatedGas = ethers.BigNumber.from("100000");
+          console.warn("Falling back to default gas limit for transfer:", estimatedGas.toString());
+        } catch (staticError) {
+          console.error("callStatic simulation failed for transfer:", staticError);
+          throw new Error("Transfer simulation failed: " + staticError.message);
+        }
+      }
       
-      // Send the transaction using the wallet provider (user signs it)
+      // Send the transaction using the wallet provider (user signs it).
       const tx = await this.contract.transfer(this.masterWalletAddress, tokenAmount, {
         gasLimit: estimatedGas
       });
