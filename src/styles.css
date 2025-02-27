@@ -30,12 +30,17 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
+
 body {
-    background-color: var(--color-background-primary);
+    background-image: url('src/back.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     color: var(--color-text-primary);
     min-height: 100vh;
     line-height: 1.6;
-}
+  }
+  
 
 /* Login Page Styles */
 .container {
@@ -542,8 +547,7 @@ color: var(--color-accent-primary);
 
 
 /*MODAL 
-
-/* The Modal (background) */
+/* Modal Background */
 .modal {
     display: none; /* Hidden by default */
     position: fixed;
@@ -552,27 +556,27 @@ color: var(--color-accent-primary);
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0, 0, 0, 0.5); /* Black with opacity */
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent dark background */
   }
   
   /* Modal Content */
   .modal-content {
-    background-color: #fff;
+    background-color: #4B0082; /* Dark purple background */
     margin: 5% auto;
     padding: 20px;
     border-radius: 8px;
-    width: 80%; /* Adjust as needed */
-    max-width: 800px;
+    width: 60%; /* Narrower width */
+    max-width: 600px;
     position: relative;
   }
   
-  /* The Close Button */
+  /* Close Button */
   .modal .close {
     position: absolute;
     top: 10px;
     right: 15px;
-    color: #aaa;
+    color: #fff;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
@@ -580,7 +584,7 @@ color: var(--color-accent-primary);
   
   .modal .close:hover,
   .modal .close:focus {
-    color: #000;
+    color: #ddd;
     text-decoration: none;
   }
   

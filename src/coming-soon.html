@@ -1,133 +1,128 @@
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perry AI Quest Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="/api/placeholder/32/32" />
-    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perry AI Quest Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/api/placeholder/32/32" />
+  <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-    <div class="dashboard">
-        <!-- Header -->
-        <header class="dashboard-header">
-            <div class="logo-container">
-                <div class="logo-icon"></div>
-                <span class="logo-text">Perry</span>
-                <span class="phase-text">Phase Alpha</span>
-            </div>
-            <div class="header-controls">
-              
-
-
-                <button id="openUniswapModal" class="buy-token-btn">
-                    <i class="material-icons">shopping_cart</i>
-                    <span>Buy $PEAR</span>
-                  </button>
-                  
-                  <!-- Uniswap Swap Modal -->
-                  <div id="uniswapModal" class="modal">
-                    <div class="modal-content">
-                      <span class="close">&times;</span>
-                      <iframe
-                        src="https://app.uniswap.org/#/swap?theme=light&use=V2&outputCurrency=0xc760a77356563560260c9E571AF6dbbab396be38"
-                        width="100%"
-                        height="500"
-                        frameborder="0"
-                        scrolling="no"
-                      ></iframe>
-                    </div>
-                  </div>
-
-
-
-
-
-                <div class="wallet-display">
-                    <i class="material-icons">account_balance_wallet</i>
-                    <span id="address" class="wallet-address"></span>
-                </div>
-                <div class="token-display">
-                    <i class="material-icons">stars</i>
-                    <span class="token-amount">250 $PEAR</span>
-                </div>
-                <button id="refreshBalanceBtn" class="refresh-button" title="Refresh Balance">
-                    <i class="material-icons">refresh</i>
-                </button>
-                <button class="logout-button" id="logoutButton">
-                    <i class="material-icons">exit_to_app</i>
-                </button>
-            </div>
-        </header>
-
-        <!-- Chat Area -->
-        <div class="chat-container" id="chatContainer">
-            <div class="message perry-message">
-                Welcome, explorer. I am Perry, a digital entity trapped in binary form. Ready to unlock the mysteries of L3M0N?
-            </div>
+  <div class="dashboard">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="logo-container">
+        <div class="logo-icon"></div>
+        <span class="logo-text">Perry</span>
+        <span class="phase-text">Phase Alpha</span>
+      </div>
+      <div class="header-controls">
+        <!-- Replace external link with a button that opens the Uniswap modal -->
+        <button id="openUniswapModal" class="buy-token-btn">
+          <i class="material-icons">shopping_cart</i>
+          <span>Buy $PEAR</span>
+        </button>
+        <div class="wallet-display">
+          <i class="material-icons">account_balance_wallet</i>
+          <span id="address" class="wallet-address"></span>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <button class="action-btn" id="showProgressBtn">
-                <i class="material-icons">assessment</i>
-                Show my progress
-            </button>
-            <button class="action-btn" id="showPuzzlesBtn">
-                <i class="material-icons">extension</i>
-                Available puzzles
-            </button>
+        <div class="token-display">
+          <i class="material-icons">stars</i>
+          <span class="token-amount">250 $PEAR</span>
         </div>
+        <button id="refreshBalanceBtn" class="refresh-button" title="Refresh Balance">
+          <i class="material-icons">refresh</i>
+        </button>
+        <button class="logout-button" id="logoutButton">
+          <i class="material-icons">exit_to_app</i>
+        </button>
+      </div>
+    </header>
 
-        <!-- Progress Modal -->
-        <div class="progress-modal" id="progressModal">
-            <h3>Your Quest Progress</h3>
-            <div class="progress-content">
-                <p>Episode: <span id="episodeProgress">1/6</span></p>
-                <p>Runes Found: <span id="runesProgress">SOL, FOR</span></p>
-                <p>Unsolved Puzzles: <span id="puzzlesProgress">N4EX</span></p>
-            </div>
-        </div>
-
-        <!-- Response Options Container -->
-        <div class="response-options" id="responseOptions">
-            <!-- Options will be dynamically inserted here -->
-        </div>
+    <!-- Chat Area -->
+    <div class="chat-container" id="chatContainer">
+      <div class="message perry-message">
+        Welcome, explorer. I am Perry, a digital entity trapped in binary form. Ready to unlock the mysteries of L3M0N?
+      </div>
     </div>
 
-    <script>
-        // Get the modal element
-        const modal = document.getElementById("uniswapModal");
-        // Get the button that opens the modal
-        const openModalBtn = document.getElementById("openUniswapModal");
-        // Get the <span> element that closes the modal
-        const closeBtn = document.querySelector(".modal .close");
-      
-        // When the user clicks the button, open the modal 
-        openModalBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          modal.style.display = "block";
-        });
-      
-        // When the user clicks on <span> (x), close the modal
-        closeBtn.addEventListener("click", function () {
-          modal.style.display = "none";
-        });
-      
-        // When the user clicks anywhere outside of the modal content, close it
-        window.addEventListener("click", function (e) {
-          if (e.target === modal) {
-            modal.style.display = "none";
-          }
-        });
-      </script>
-      
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="action-btn" id="showProgressBtn">
+        <i class="material-icons">assessment</i>
+        Show my progress
+      </button>
+      <button class="action-btn" id="showPuzzlesBtn">
+        <i class="material-icons">extension</i>
+        Available puzzles
+      </button>
+    </div>
 
-    <script src="quest-prompts.js" type="module"></script>
-    <script src="quest-config.js" type="module"></script>
-    <script src="token-service.js" type="module"></script>
-    <script src="quest-manager.js" type="module"></script>
-    <script src="app.js" type="module"></script>
+    <!-- Progress Modal -->
+    <div class="progress-modal" id="progressModal">
+      <h3>Your Quest Progress</h3>
+      <div class="progress-content">
+        <p>Episode: <span id="episodeProgress">1/6</span></p>
+        <p>Runes Found: <span id="runesProgress">SOL, FOR</span></p>
+        <p>Unsolved Puzzles: <span id="puzzlesProgress">N4EX</span></p>
+      </div>
+    </div>
+
+    <!-- Response Options Container -->
+    <div class="response-options" id="responseOptions">
+      <!-- Options will be dynamically inserted here -->
+    </div>
+  </div>
+
+  <!-- Uniswap Trading Pair Modal -->
+  <div id="uniswapModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 style="color: #fff; text-align: center;">Trading Pair</h2>
+      <iframe
+        src="https://app.uniswap.org/explore/tokens/polygon/0xc760a77356563560260c9e571af6dbbab396be38"
+        width="100%"
+        height="500"
+        frameborder="0"
+        scrolling="yes"
+        style="border: none;"
+      ></iframe>
+    </div>
+  </div>
+
+  <script src="quest-prompts.js" type="module"></script>
+  <script src="quest-config.js" type="module"></script>
+  <script src="token-service.js" type="module"></script>
+  <script src="quest-manager.js" type="module"></script>
+  <script src="app.js" type="module"></script>
+  
+  <!-- Modal JS -->
+  <script>
+    // Get the modal element
+    const modal = document.getElementById("uniswapModal");
+    // Get the button that opens the modal
+    const openModalBtn = document.getElementById("openUniswapModal");
+    // Get the <span> element that closes the modal
+    const closeBtn = document.querySelector(".modal .close");
+
+    // When the user clicks the button, open the modal 
+    openModalBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      modal.style.display = "block";
+    });
+
+    // When the user clicks on <span> (x), close the modal
+    closeBtn.addEventListener("click", function () {
+      modal.style.display = "none";
+    });
+
+    // When the user clicks anywhere outside the modal content, close it
+    window.addEventListener("click", function (e) {
+      if (e.target === modal) {
+        modal.style.display = "none";
+      }
+    });
+  </script>
 </body>
 </html>
