@@ -136,7 +136,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📞 Contact
 
-For questions or feedback, please open an issue on GitHub or reach out to the team at [contact@perrythepear.com](mailto:contact@perrythepear.com).
+For questions or feedback, please open an issue on GitHub or reach out to the team at [partners@perrythepear.com](mailto:partners@perrythepear.com).
 
 ---
 
