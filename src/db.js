@@ -2,13 +2,13 @@
 import pg from 'pg';
 const { Pool } = pg;
 
+// Configure PostgreSQL pool with environment variables
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, 
+    connectionString: process.env.DATABASE_URL || '',
     ssl: {
         rejectUnauthorized: false
     }
 });
-
 
 // Error logging helper
 const logError = (error, context) => {
@@ -60,12 +60,30 @@ export const verifyWalletAuth = async (walletAddress, authToken) => {
     }
 };
 
+export const checkWalletExists = async (walletAddress) => {
+    const query = `
+        SELECT * FROM wallet_users 
+        WHERE wallet_address = $1 
+        AND is_active = true`;
+    
+    try {
+        const result = await pool.query(query, [walletAddress]);
+        return {
+            found: result.rows.length > 0,
+            wallet: result.rows[0] || null
+        };
+    } catch (error) {
+        logError(error, 'checkWalletExists');
+        throw error;
+    }
+};
+
 const generateAuthToken = () => {
     return 'tk_' + Math.random().toString(36).substr(2) + Date.now();
 };
 
 // Initialize the database
-const initDB = async () => {
+export const initDB = async () => {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS wallet_users (
             id SERIAL PRIMARY KEY,
@@ -80,24 +98,28 @@ const initDB = async () => {
     try {
         await pool.query(createTableQuery);
         console.log('Database initialized successfully');
+        return true;
     } catch (error) {
         logError(error, 'initDB');
         throw error;
     }
 };
 
-// Test database connection and initialize
-pool.connect((err, client, release) => {
-    if (err) {
-        logError(err, 'Initial database connection test');
-        return;
-    }
-    console.log('Database connected successfully');
-    release();
-    
-    // Initialize database after successful connection
-    initDB().catch(error => {
-        logError(error, 'Database initialization');
-        process.exit(1);
+// Test database connection
+export const testConnection = () => {
+    return new Promise((resolve, reject) => {
+        pool.connect((err, client, release) => {
+            if (err) {
+                logError(err, 'Initial database connection test');
+                reject(err);
+                return;
+            }
+            console.log('Database connected successfully');
+            release();
+            resolve(true);
+        });
     });
-});
+};
+
+// Export the pool for direct use if needed
+export { pool, logError };
