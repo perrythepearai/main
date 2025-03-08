@@ -199,25 +199,47 @@ body {
     background-color: var(--color-background-secondary);
 }
 
-.message {
-    max-width: 80%;
-    padding: 1rem;
-    border-radius: 12px;
-    line-height: 1.5;
+/* Message text style */
+.message-text {
+    flex: 1;
+    word-break: break-word;
+  }
+  
+  /* Message content layout with avatars */
+.perry-message-content,
+.user-message-content {
+  display: flex;
+  align-items: flex-start;
 }
 
-.perry-message {
-    background-color: var(--color-surface);
-    align-self: flex-start;
-    box-shadow: var(--elevation-1);
-}
 
-.user-message {
-    background-color: var(--color-accent-primary);
-    align-self: flex-end;
+  /* Perry avatar style */
+  .perry-avatar {
+    background-color: var(--color-accent-primary, #8A4FFF);
+    border: 2px solid #6A0DAD;
+  }
+  
+  /* User avatar style */
+  .user-avatar {
+    background-color: #4682B4;
+    border: 2px solid #2E5984;
+  }
+
+  /* Avatar circle styling */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 20px;
     color: white;
-}
-
+    margin-right: 10px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
 .system-message {
     background-color: rgba(138, 79, 255, 0.2);
     color: var(--color-accent-primary);
@@ -340,37 +362,40 @@ body {
 
 /* Quest-specific styles to add to existing styles.css */
 
-/* Message Styles */
+* Message styling */
 .message {
-    max-width: 80%;
-    padding: 1rem;
-    border-radius: 12px;
-    line-height: 1.5;
-    margin: 0.5rem 0;
+  max-width: 80%;
+  padding: 1rem;
+  border-radius: 12px;
+  line-height: 1.5;
+  margin: 0.5rem 0;
 }
 
 .perry-message {
-    background-color: var(--color-surface);
-    align-self: flex-start;
-    box-shadow: var(--elevation-1);
+  background-color: var(--color-surface);
+  align-self: flex-start;
+  box-shadow: var(--elevation-1);
 }
 
 .user-message {
-    background-color: var(--color-accent-primary);
-    align-self: flex-end;
-    color: white;
+  background-color: var(--color-accent-primary);
+  align-self: flex-end;
+  color: white;
 }
 
 .system-message {
-    background-color: rgba(138, 79, 255, 0.2);
-    color: var(--color-accent-primary);
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    align-self: center;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  background-color: rgba(138, 79, 255, 0.2);
+  color: var(--color-accent-primary);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem auto;
+  max-width: 80%;
 }
+
 
 /* Loading Message */
 .loading-message {

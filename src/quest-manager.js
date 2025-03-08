@@ -19,6 +19,51 @@ class QuestManager {
             availableChoices: [],
             conversationHistory: []
         };
+        
+        // Try to preload images to see if they exist
+        this.preloadImages();
+    }
+    
+    // Preload images to check if they exist and where they are
+    preloadImages() {
+        const paths = [
+            '/Perry.png', 
+            'Perry.png',
+            '/img/Perry.png',
+            'img/Perry.png',
+            '/images/Perry.png',
+            'images/Perry.png',
+            '/assets/Perry.png',
+            'assets/Perry.png',
+            '/src/Perry.png',
+            'src/Perry.png'
+        ];
+        
+        this.foundPaths = {};
+        
+        paths.forEach(path => {
+            const img = new Image();
+            img.onload = () => {
+                console.log(`✅ Found image at: ${path}`);
+                
+                // Store the first successful path for each type
+                if (path.includes('Perry') && !this.foundPaths.perry) {
+                    this.foundPaths.perry = path;
+                }
+                
+                // Check corresponding user path
+                const userPath = path.replace('Perry', 'user');
+                const userImg = new Image();
+                userImg.onload = () => {
+                    console.log(`✅ Found image at: ${userPath}`);
+                    if (!this.foundPaths.user) {
+                        this.foundPaths.user = userPath;
+                    }
+                };
+                userImg.src = userPath;
+            };
+            img.src = path;
+        });
     }
 
     async initialize() {
@@ -26,7 +71,6 @@ class QuestManager {
             console.log('Initializing Quest Manager...');
             await this.loadSavedState();
             await this.generateInitialStory();
-            this.setupProgressTracking();
             this.isInitialized = true;
             return true;
         } catch (error) {
@@ -36,6 +80,12 @@ class QuestManager {
     }
 
     async generateInitialStory() {
+        // Only generate if we don't have a current plot point
+        if (this.questState.currentPlotPoint) {
+            console.log('Using existing plot point, skipping initial story generation');
+            return this.questState.currentPlotPoint;
+        }
+        
         this.addLoadingMessage();
         try {
             const story = await this.callOpenAI(
@@ -44,6 +94,11 @@ class QuestManager {
             );
             
             this.questState.currentPlotPoint = story;
+            this.questState.conversationHistory.push({
+                type: 'perry',
+                content: story
+            });
+            
             await this.generateChoices(story);
             this.addMessage('perry', story);
             return story;
@@ -54,38 +109,58 @@ class QuestManager {
 
     async loadSavedState() {
         try {
-            const savedState = localStorage.getItem('questState');
+            const walletAddress = localStorage.getItem('walletAddress');
+            if (!walletAddress) return;
+            
+            // Get state with wallet address as key
+            const stateKey = `questState_${walletAddress.toLowerCase()}`;
+            const savedState = localStorage.getItem(stateKey);
+            
             if (savedState) {
                 const state = JSON.parse(savedState);
                 Object.assign(this.questState, state);
                 this.$PEAR = state.$PEAR || this.$PEAR;
+                console.log('Loaded saved state successfully for wallet:', walletAddress);
             }
         } catch (e) {
             console.warn('Failed to load saved state:', e);
         }
     }
-
-    setupProgressTracking() {
-        const progressBtn = document.getElementById('progressButton');
-        const puzzlesBtn = document.getElementById('puzzlesButton');
-
-        if (progressBtn) {
-            progressBtn.onclick = () => this.showProgress();
-        }
-        if (puzzlesBtn) {
-            puzzlesBtn.onclick = () => this.showAvailablePuzzles();
-        }
-    }
     
-    
-    // quest-manager.js - Part 2: AI Integration
     async callOpenAI(systemPrompt, userPrompt) {
         const cacheKey = `${systemPrompt}:${userPrompt}`;
         if (this.aiCache.has(cacheKey)) {
             return this.aiCache.get(cacheKey);
         }
 
+        // Check if we have a valid API key
+        const hasValidApiKey = CONFIG.OPENAI.API_KEY && 
+                              CONFIG.OPENAI.API_KEY.startsWith('sk-') && 
+                              CONFIG.OPENAI.API_KEY.length > 10;
+
         try {
+            // For development without API key, use mocked responses
+            if (!hasValidApiKey) {
+                console.warn('Using mock AI responses due to missing/invalid API key');
+                
+                // Determine what kind of response to generate based on the prompt
+                let mockResponse = '';
+                
+                if (userPrompt.includes('Begin the story')) {
+                    mockResponse = 'The Green Mist swirls through the digital garden, obscuring pathways and hiding secrets. Welcome to the mysterious realm of L3M0N, where blockchain and nature intertwine. What path will you choose, explorer?';
+                } 
+                else if (systemPrompt.includes('choiceGeneration')) {
+                    mockResponse = 'Investigate the strange glowing rune near the fountain.\nFollow the trail of corrupted data nodes deeper into the mist.\nSeek out the keeper of digital seeds who might have answers.\nAnalyze the pattern of the mist\'s movement for clues.';
+                }
+                else {
+                    mockResponse = 'As you venture deeper, the Green Mist parts momentarily, revealing fractured code patterns in the air. Could this be connected to the L3M0N protocol? The garden seems to respond to your blockchain signature, opening new pathways forward.';
+                }
+                
+                this.aiCache.set(cacheKey, mockResponse);
+                return mockResponse;
+            }
+
+            // If we have a valid API key, make the real API call
             const response = await fetch(CONFIG.OPENAI.API_ENDPOINT, {
                 method: 'POST',
                 headers: {
@@ -112,7 +187,16 @@ class QuestManager {
             return generatedContent;
         } catch (error) {
             console.error('Error calling OpenAI API:', error);
-            throw error;
+            
+            // Fallback to cached content or mock response
+            if (this.aiCache.has('fallback:' + systemPrompt)) {
+                return this.aiCache.get('fallback:' + systemPrompt);
+            }
+            
+            // Generate a simple fallback response
+            const fallback = 'The path ahead is shrouded in mist. What would you like to do next?';
+            this.aiCache.set('fallback:' + systemPrompt, fallback);
+            return fallback;
         }
     }
 
@@ -131,6 +215,7 @@ class QuestManager {
             }));
 
         await this.updateUI();
+        this.saveState();
     }
 
     async handleOptionSelect(optionId) {
@@ -164,6 +249,9 @@ class QuestManager {
             // Generate new choices and check for puzzle triggers
             await this.generateChoices(response);
             await this.checkForPuzzleTrigger(response);
+            
+            // Save state after interaction
+            this.saveState();
 
         } catch (error) {
             console.error('Error handling option:', error);
@@ -173,8 +261,25 @@ class QuestManager {
         }
     }
     
-    
-    
+    // Save state
+    saveState() {
+        try {
+            const walletAddress = localStorage.getItem('walletAddress');
+            if (!walletAddress) return;
+            
+            // Store state with wallet address as key
+            const stateKey = `questState_${walletAddress.toLowerCase()}`;
+            const state = {
+                ...this.questState,
+                $PEAR: this.$PEAR
+            };
+            
+            localStorage.setItem(stateKey, JSON.stringify(state));
+            console.log('State saved successfully for wallet:', walletAddress);
+        } catch (e) {
+            console.error('Failed to save state:', e);
+        }
+    }
     
     // quest-manager.js - Part 3: UI and Messages
     addLoadingMessage() {
@@ -202,28 +307,42 @@ class QuestManager {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}-message`;
         
-        let icon = '';
-        switch(type) {
-            case 'user':
-                icon = '👤';
-                break;
-            case 'perry':
-                icon = '🤖';
-                break;
-            case 'system':
-                icon = 'ℹ️';
-                break;
+        // Use a fallback method if we can't find the image and type isn't system
+        if (type !== 'system') {
+            const imageContent = this.createMessageWithAvatar(type, content);
+            messageDiv.innerHTML = imageContent;
+        } else {
+            // For system messages, no avatar needed
+            messageDiv.innerHTML = `
+                <div class="${type}-message-content">
+                    <span class="message-text">${content}</span>
+                </div>
+            `;
         }
-
-        messageDiv.innerHTML = `
-            <div class="${type}-message-content">
-                <span class="message-icon">${icon}</span>
-                <span class="message-text">${content}</span>
-            </div>
-        `;
 
         chatContainer.appendChild(messageDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // A separate method to create message content with avatar
+    createMessageWithAvatar(type, content) {
+        // If we've found successful image paths through preloading, use them
+        if (this.foundPaths && this.foundPaths[type]) {
+            return `
+                <div class="${type}-message-content">
+                    <img src="${this.foundPaths[type]}" class="message-avatar" alt="${type}">
+                    <span class="message-text">${content}</span>
+                </div>
+            `;
+        }
+        
+        // Otherwise use CSS-based avatars as fallback
+        return `
+            <div class="${type}-message-content">
+                <div class="avatar-circle ${type}-avatar">${type === 'perry' ? 'P' : 'U'}</div>
+                <span class="message-text">${content}</span>
+            </div>
+        `;
     }
 
     async updateUI() {
@@ -235,24 +354,12 @@ class QuestManager {
             const button = document.createElement('button');
             button.className = `response-option-btn ${option.type}-action`;
             button.textContent = option.text;
+            button.setAttribute('data-option-id', option.id);
             button.onclick = () => this.handleOptionSelect(option.id);
             optionsContainer.appendChild(button);
         });
     }
 
-    showModal(title, content) {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <h2>${title}</h2>
-                ${content}
-                <button onclick="this.parentElement.parentElement.remove()">Close</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    
     // quest-manager.js - Part 4: Puzzles and Progress
     async checkForPuzzleTrigger(response) {
         if (!this.questState.solvedPuzzles.includes('mist_pattern') &&
@@ -262,43 +369,8 @@ class QuestManager {
             
             this.currentPuzzle = 'mist_pattern';
             this.addMessage('system', 'A pattern emerges in the mist... Can you decode it?');
+            this.saveState();
         }
-    }
-
-    showProgress() {
-        const content = `
-            <div class="progress-container">
-                <p>$PEAR Balance: ${this.$PEAR}</p>
-                <p>Puzzles Solved: ${this.questState.solvedPuzzles.length}</p>
-                <p>Runes Discovered: ${this.questState.discoveredRunes.join(', ') || 'None'}</p>
-                <p>Areas Unlocked: ${this.questState.unlockedAreas.join(', ')}</p>
-            </div>
-        `;
-        this.showModal('Quest Progress', content);
-    }
-
-    showAvailablePuzzles() {
-        let content = '<div class="puzzles-container">';
-        
-        if (this.currentPuzzle === 'mist_pattern' && 
-            !this.questState.solvedPuzzles.includes('mist_pattern')) {
-            content += `
-                <div class="puzzle-item">
-                    <h3>The Mist Pattern</h3>
-                    <p>A mysterious grid pattern appears in the mist...</p>
-                    <div class="puzzle-input">
-                        <input type="text" id="puzzleSolution" placeholder="Enter solution">
-                        <button onclick="window.questManager.submitSolution()">Submit</button>
-                        <button onclick="window.questManager.requestHint()">Get Hint (25 $PEAR)</button>
-                    </div>
-                </div>
-            `;
-        } else {
-            content += '<p>No puzzles currently available...</p>';
-        }
-        
-        content += '</div>';
-        this.showModal('Available Puzzles', content);
     }
 
     async submitSolution() {
@@ -310,7 +382,8 @@ class QuestManager {
             this.$PEAR += CONFIG.GAME.PUZZLE_COMPLETION_BONUS;
             this.questState.solvedPuzzles.push('mist_pattern');
             this.addMessage('system', `Correct! You've earned ${CONFIG.GAME.PUZZLE_COMPLETION_BONUS} $PEAR!`);
-            document.querySelector('.modal').remove();
+            document.querySelector('.modal')?.remove();
+            this.saveState();
         } else {
             this.addMessage('system', 'That\'s not quite right. Try again.');
         }
@@ -331,8 +404,10 @@ class QuestManager {
         );
 
         this.addMessage('system', hint);
+        this.saveState();
     }
 }
 
 // Create and export instance
-export const questManager = new QuestManager();
+const questManager = new QuestManager();
+export { questManager };

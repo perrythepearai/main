@@ -4,6 +4,13 @@ import { CONFIG } from './quest-config.js';
 import { QUEST_PROMPTS } from './quest-prompts.js';
 import { TokenService } from './token-service.js';
 
+// Debug logging for OpenAI configuration
+console.log('OpenAI config check:', {
+  api_key_exists: !!CONFIG.OPENAI.API_KEY,
+  api_key_length: CONFIG.OPENAI.API_KEY ? CONFIG.OPENAI.API_KEY.length : 0,
+  api_endpoint: CONFIG.OPENAI.API_ENDPOINT
+});
+
 // Ensure original questManager is imported correctly
 const originalQuestManager = questManager;
 
@@ -35,7 +42,6 @@ function addSystemMessage(content) {
   messageDiv.className = 'message system-message';
   messageDiv.innerHTML = `
     <div class="message-content">
-      <span class="message-icon">ℹ️</span>
       <span class="message-text">${content}</span>
     </div>
   `;
@@ -71,24 +77,20 @@ async function checkNetwork() {
 // Token approval function
 async function requestTokenApproval() {
   if (!tokenService) {
-    addSystemMessage('Token service not initialized');
     return false;
   }
 
-  addSystemMessage("Requesting PEAR token approval for quest interactions...");
-  
   try {
     const result = await tokenService.approveTokenSpending();
     if (result.success) {
       approvalCompleted = true;
-      addSystemMessage("✅ PEAR tokens approved successfully!");
       return true;
     } else {
-      addSystemMessage(`❌ Token approval failed: ${result.error}`);
+      console.error('Token approval failed:', result.error);
       return false;
     }
   } catch (error) {
-    addSystemMessage(`Error during token approval: ${error.message}`);
+    console.error('Error during token approval:', error.message);
     return false;
   }
 }
@@ -110,13 +112,11 @@ async function updatePearBalance() {
       tokenDisplayElement.textContent = `${balance} $PEAR`;
     }
     
-    addSystemMessage(`Current $PEAR balance: ${balance}`);
   } catch (error) {
     console.error('Error updating PEAR balance:', error);
     if (tokenDisplayElement) {
       tokenDisplayElement.textContent = '? $PEAR';
     }
-    addSystemMessage(`Failed to update balance: ${error.message}`);
   }
 }
 
@@ -153,6 +153,7 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
 
       this.questState.availableChoices = choicesList;
       await this.updateUI();
+      this.saveState(); // Save state after generating new choices
     } catch (error) {
       console.error('Error generating choices:', error);
       this.addMessage('system', 'Error generating story options. Please try again.');
@@ -166,9 +167,9 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
       return false;
     }
 
-    // Prevent multiple transactions for the same option
+    // Prevent multiple transactions for the same option - but hide the message
     if (this.processingOptions.has(optionId)) {
-      this.addMessage('system', 'This option is already being processed.');
+      console.log('Option is already being processed:', optionId);
       return false;
     }
     
@@ -238,6 +239,9 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
       await this.generateChoices(response);
       await this.checkForPuzzleTrigger(response);
       
+      // Save state after interaction
+      this.saveState();
+      
       return true;
     } catch (error) {
       console.error('Error handling option with token deduction:', error);
@@ -249,6 +253,97 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
     } finally {
       this.processingOptions.delete(optionId);
       this.removeLoadingMessage();
+    }
+  }
+  
+  // Enhanced state saving
+  saveState() {
+    try {
+      const walletAddress = localStorage.getItem('walletAddress');
+      if (!walletAddress) return;
+      
+      // Store state with wallet address as key
+      const stateKey = `questState_${walletAddress.toLowerCase()}`;
+      const state = {
+        ...this.questState,
+        $PEAR: this.$PEAR
+      };
+      
+      localStorage.setItem(stateKey, JSON.stringify(state));
+      console.log('Quest state saved successfully for wallet:', walletAddress);
+    } catch (e) {
+      console.error('Failed to save state:', e);
+    }
+  }
+  
+  // Enhanced state loading
+  async loadSavedState() {
+    try {
+      const walletAddress = localStorage.getItem('walletAddress');
+      if (!walletAddress) return false;
+      
+      // Get state with wallet address as key
+      const stateKey = `questState_${walletAddress.toLowerCase()}`;
+      const savedState = localStorage.getItem(stateKey);
+      
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        Object.assign(this.questState, state);
+        this.$PEAR = state.$PEAR || this.$PEAR;
+        
+        console.log('Quest state loaded successfully for wallet:', walletAddress);
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      console.warn('Failed to load saved state:', e);
+      return false;
+    }
+  }
+  
+  // Override initialize to handle existing state
+  async initialize() {
+    try {
+      console.log('Initializing Quest Manager...');
+      
+      // Load user-specific saved state
+      const hasState = await this.loadSavedState();
+      
+      // If no saved state or incomplete state, generate initial story
+      if (!hasState || !this.questState.currentPlotPoint) {
+        await this.generateInitialStory();
+      } else {
+        // If we have existing state, restore the chat history
+        this.restoreChat();
+        
+        // And make sure UI is updated with current choices
+        await this.updateUI();
+      }
+      
+      this.isInitialized = true;
+      return true;
+    } catch (error) {
+      console.error('Initialization failed:', error);
+      return false;
+    }
+  }
+  
+  // Restore chat from saved history
+  restoreChat() {
+    // Clear chat first
+    if (chatContainer) {
+      chatContainer.innerHTML = '';
+    }
+    
+    // Rebuild chat from history
+    if (this.questState.conversationHistory && this.questState.conversationHistory.length > 0) {
+      this.questState.conversationHistory.forEach(message => {
+        this.addMessage(message.type, message.content);
+      });
+    } else if (this.questState.currentPlotPoint) {
+      // If we have a current plot point but no history, just show that
+      this.addMessage('perry', this.questState.currentPlotPoint);
     }
   }
 }
@@ -318,27 +413,37 @@ async function initializeApp() {
       addressElement.textContent = formattedAddress;
     }
     
-    // Validate OpenAI configuration
-    if (!CONFIG.OPENAI || !CONFIG.OPENAI.API_KEY) {
-      throw new Error('OpenAI API key not configured correctly');
-    }
-    
     // Initialize token service using the user's wallet address
     tokenService = new TokenService(walletAddress);
     
-    // Initialize token balance and approval
+    // Initialize token balance and approval (silently)
     await updatePearBalance();
     await requestTokenApproval();
+    
+    // Handle missing OpenAI API key by creating a temporary one for testing
+    // ONLY FOR DEVELOPMENT - REMOVE IN PRODUCTION
+    if (!CONFIG.OPENAI.API_KEY) {
+      console.warn('OpenAI API key missing. Using fallback for development.');
+      CONFIG.OPENAI.API_KEY = 'sk-test-development-mode-key';
+    }
     
     // Initialize quest manager
     await enhancedQuestManager.initialize();
     
-    // Welcome message
-    addSystemMessage('Welcome to the Green Mist quest. The garden awaits your exploration...');
+    // Welcome message only if this is first-time user
+    if (!localStorage.getItem(`questState_${walletAddress.toLowerCase()}`)) {
+      addSystemMessage('Welcome to the Green Mist quest. The garden awaits your exploration...');
+    }
     
     // Setup event listeners
     setupDirectButtonHandlers();
     setupWalletEventListeners();
+    
+    // Setup refresh balance button
+    const refreshBalanceBtn = document.getElementById('refreshBalanceBtn');
+    if (refreshBalanceBtn) {
+      refreshBalanceBtn.addEventListener('click', updatePearBalance);
+    }
     
   } catch (error) {
     console.error('Error initializing app:', error);
@@ -378,7 +483,7 @@ async function handleAccountChange(accounts) {
 async function handleLogout() {
   localStorage.removeItem('authToken');
   localStorage.removeItem('walletAddress');
-  localStorage.removeItem('questState');
+  // Don't remove quest state to preserve progress
   
   if (typeof window.ethereum !== 'undefined') {
     try {
