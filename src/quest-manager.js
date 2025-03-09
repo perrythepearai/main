@@ -24,13 +24,39 @@ class QuestManager {
             availableChoices: [],
             conversationHistory: []
         };
+        
+        // Add referral-related properties
+        this.referralVerified = false;
+        this.inviteCodes = [];
     }
 
     async initialize() {
         try {
             console.log('Initializing Quest Manager...');
+            
+            // Check referral status
+            const isVerified = await this.checkReferralStatus();
+            this.referralVerified = isVerified;
+            
+            if (!this.referralVerified) {
+                console.log('User needs to verify referral code');
+                // We'll handle this in the UI flow
+            } else {
+                // Load user's invite codes
+                await this.getUserInviteCodes();
+            }
+            
+            // Original initialization
             await this.loadSavedState();
-            await this.generateInitialStory();
+            
+            // If not verified, don't load initial story yet
+            if (this.referralVerified) {
+                await this.generateInitialStory();
+            } else {
+                // We'll show a special message in the UI
+                this.questState.currentPlotPoint = '';
+            }
+            
             this.isInitialized = true;
             return true;
         } catch (error) {
@@ -179,6 +205,12 @@ class QuestManager {
     }
 
     async handleOptionSelect(optionId) {
+        // Check if referral is verified before allowing interaction
+        if (!this.referralVerified) {
+            this.addMessage('system', 'Please enter an invite code to begin your journey.');
+            return;
+        }
+        
         try {
             const selectedChoice = this.questState.availableChoices.find(c => c.id === optionId);
             if (!selectedChoice) return;
@@ -241,7 +273,7 @@ class QuestManager {
         }
     }
     
-    // quest-manager.js - Part 3: UI and Messages
+    // UI and Messages
     addLoadingMessage() {
         const loadingDiv = document.createElement('div');
         loadingDiv.id = 'loadingMessage';
@@ -313,17 +345,21 @@ class QuestManager {
         if (!optionsContainer) return;
 
         optionsContainer.innerHTML = '';
-        this.questState.availableChoices.forEach(option => {
-            const button = document.createElement('button');
-            button.className = `response-option-btn ${option.type}-action`;
-            button.textContent = option.text;
-            button.setAttribute('data-option-id', option.id);
-            button.onclick = () => this.handleOptionSelect(option.id);
-            optionsContainer.appendChild(button);
-        });
+        
+        // Only show choices if referral is verified
+        if (this.referralVerified) {
+            this.questState.availableChoices.forEach(option => {
+                const button = document.createElement('button');
+                button.className = `response-option-btn ${option.type}-action`;
+                button.textContent = option.text;
+                button.setAttribute('data-option-id', option.id);
+                button.onclick = () => this.handleOptionSelect(option.id);
+                optionsContainer.appendChild(button);
+            });
+        }
     }
 
-    // quest-manager.js - Part 4: Puzzles and Progress
+    // Puzzles and Progress
     async checkForPuzzleTrigger(response) {
         if (!this.questState.solvedPuzzles.includes('mist_pattern') &&
             (response.toLowerCase().includes('grid') || 
@@ -368,6 +404,236 @@ class QuestManager {
 
         this.addMessage('system', hint);
         this.saveState();
+    }
+    
+    // Referral System Methods
+    
+    // Check if user has already verified a referral code
+    async checkReferralStatus() {
+        try {
+            const walletAddress = localStorage.getItem('walletAddress');
+            if (!walletAddress) return false;
+            
+            const response = await fetch(`/api/referral/status/${walletAddress}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.referralVerified = data.hasUsedInviteCode;
+                return this.referralVerified;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Error checking referral status:', error);
+            return false;
+        }
+    }
+    
+    // Verify a referral code
+    async verifyReferralCode(code) {
+        try {
+            if (!code || typeof code !== 'string' || code.trim() === '') {
+                return {
+                    success: false,
+                    error: 'Please enter a valid invite code'
+                };
+            }
+            
+            const walletAddress = localStorage.getItem('walletAddress');
+            if (!walletAddress) {
+                return {
+                    success: false,
+                    error: 'Wallet not connected'
+                };
+            }
+            
+            const response = await fetch('/api/referral/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    code: code.trim(),
+                    walletAddress
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.referralVerified = true;
+                this.inviteCodes = data.inviteCodes || [];
+                return {
+                    success: true,
+                    message: 'Invite code accepted!',
+                    inviteCodes: this.inviteCodes
+                };
+            } else {
+                return {
+                    success: false,
+                    error: data.error || 'Invalid invite code'
+                };
+            }
+        } catch (error) {
+            console.error('Error verifying referral code:', error);
+            return {
+                success: false,
+                error: 'Error verifying code. Please try again.'
+            };
+        }
+    }
+    
+    // Get the user's invite codes
+    async getUserInviteCodes() {
+        try {
+            const walletAddress = localStorage.getItem('walletAddress');
+            if (!walletAddress) return [];
+            
+            const response = await fetch(`/api/referral/codes/${walletAddress}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.inviteCodes = data.codes || [];
+                return this.inviteCodes;
+            }
+            
+            return [];
+        } catch (error) {
+            console.error('Error getting user invite codes:', error);
+            return [];
+        }
+    }
+    
+    // Show invite codes to the user
+    showInviteCodes() {
+        if (this.inviteCodes.length === 0) {
+            this.addMessage('system', 'You don\'t have any invite codes yet.');
+            return;
+        }
+        
+        const codesList = this.inviteCodes.map(code => 
+            typeof code === 'string' ? code : code.code
+        ).join(', ');
+        
+        this.addMessage('perry', `Here are your invite codes to share with friends: ${codesList}`);
+    }
+    
+    // New method for handling the initial referral dialog
+    async handleReferralDialog() {
+        // Clear any existing content
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            chatContainer.innerHTML = '';
+        }
+        
+     // Add the welcome message
+this.addMessage('perry', 'Welcome to the Green Mist quest! To begin your journey, please enter an invite code:');
+
+   // Create and add the input form
+const formContainer = document.createElement('div');
+formContainer.className = 'referral-form';
+formContainer.innerHTML = `
+    <div class="message system-message">
+        <div class="referral-input-container">
+            <input type="text" id="referralCodeInput" placeholder="Enter your 5-character invite code (e.g. ABC4D)" class="referral-input">
+            <button id="submitReferralCode" class="referral-submit-btn">Submit</button>
+        </div>
+    </div>
+`;
+        
+        chatContainer.appendChild(formContainer);
+        
+        // Set up event listener for the submit button
+        const submitButton = document.getElementById('submitReferralCode');
+        const codeInput = document.getElementById('referralCodeInput');
+        
+        if (submitButton && codeInput) {
+            // Handle submit button click
+            submitButton.addEventListener('click', async () => {
+                const code = codeInput.value;
+                await this.processReferralCode(code);
+            });
+            
+            // Handle Enter key in input
+            codeInput.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    const code = codeInput.value;
+                    await this.processReferralCode(code);
+                }
+            });
+        }
+    }
+    
+    // Process the entered referral code
+    async processReferralCode(code) {
+        // Disable the input and button
+        const submitButton = document.getElementById('submitReferralCode');
+        const codeInput = document.getElementById('referralCodeInput');
+        
+        if (submitButton && codeInput) {
+            submitButton.disabled = true;
+            codeInput.disabled = true;
+        }
+        
+        // Show loading message
+        this.addMessage('system', 'Verifying invite code...');
+        
+        // Verify the code
+        const result = await this.verifyReferralCode(code);
+        
+        if (result.success) {
+            // Remove the referral form
+            const formContainer = document.querySelector('.referral-form');
+            if (formContainer) {
+                formContainer.remove();
+            }
+            
+            // Show success message
+            this.addMessage('system', 'Invite code accepted! Welcome to the garden.');
+            
+            // Show the user their invite codes
+            this.addMessage('perry', `You've been granted 3 invite codes to share with friends: ${result.inviteCodes.join(', ')}`);
+            
+            // Start the quest
+            await this.generateInitialStory();
+            
+            // Add a special button for showing invite codes
+            this.addInviteCodesButton();
+        } else {
+            // Show error message
+            this.addMessage('system', result.error || 'Invalid invite code. Please try again.');
+            
+            // Re-enable the input and button
+            if (submitButton && codeInput) {
+                submitButton.disabled = false;
+                codeInput.disabled = false;
+                codeInput.focus();
+            }
+        }
+    }
+    
+    // Add a button to show invite codes
+    addInviteCodesButton() {
+        const container = document.createElement('div');
+        container.className = 'invite-codes-container';
+        container.innerHTML = `
+            <button id="showInviteCodesBtn" class="show-invite-codes-btn">
+                <i class="material-icons">people</i>
+                Show My Invite Codes
+            </button>
+        `;
+        
+        // Append to the response options area
+        const responseOptions = document.getElementById('responseOptions');
+        if (responseOptions) {
+            responseOptions.parentNode.insertBefore(container, responseOptions);
+            
+            // Add event listener
+            const button = document.getElementById('showInviteCodesBtn');
+            if (button) {
+                button.addEventListener('click', () => this.showInviteCodes());
+            }
+        }
     }
 }
 

@@ -576,6 +576,111 @@ body {
     position: relative;
 }
 
+
+
+
+/* Add these styles to your existing CSS file */
+
+/* Referral input container styling */
+.referral-input-container {
+    display: flex;
+    width: 100%;
+    max-width: 500px;
+    margin: 0.5rem auto;
+    gap: 0.5rem;
+  }
+  
+  /* Referral input styling */
+  .referral-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-accent-primary);
+    background-color: var(--color-background-tertiary);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+  }
+  
+  .referral-input:focus {
+    box-shadow: 0 0 0 2px rgba(138, 79, 255, 0.4);
+  }
+  
+  .referral-input:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  /* Referral submit button styling */
+  .referral-submit-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    background-color: var(--color-accent-primary);
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .referral-submit-btn:hover {
+    background-color: var(--color-accent-secondary);
+    transform: translateY(-2px);
+    box-shadow: var(--elevation-2);
+  }
+  
+  .referral-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* Invite codes button styling */
+  .invite-codes-container {
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: center;
+    background-color: var(--color-surface);
+    border-top: 1px solid rgba(138, 79, 255, 0.1);
+  }
+  
+  .show-invite-codes-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    background-color: rgba(138, 79, 255, 0.1);
+    color: var(--color-accent-primary);
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .show-invite-codes-btn:hover {
+    background-color: rgba(138, 79, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .show-invite-codes-btn i {
+    font-size: 1.2rem;
+  }
+  
+  /* Highlight for invite codes in messages */
+  .invite-code {
+    font-family: monospace;
+    font-weight: bold;
+    background-color: rgba(138, 79, 255, 0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    color: var(--color-accent-primary);
+  }
+
+
+
 /* Close Button */
 .modal .close {
     position: absolute;

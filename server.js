@@ -1,3 +1,4 @@
+// server.js
 import express from 'express';
 import pg from 'pg';
 import cors from 'cors';
@@ -5,10 +6,17 @@ import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config();
 import { fileURLToPath } from 'url';
+import { 
+    generateInitialInviteCodes, 
+    generateUserInviteCodes, 
+    verifyAndUseInviteCode, 
+    hasUsedInviteCode,
+    getUserInviteCodes
+} from './src/referral-service.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
-const host = 'localhost';
+const host = process.env.HOST || 'localhost';
 
 // Get the directory name of the current module
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,29 +42,28 @@ const logError = (error, context) => {
     console.error('=====================');
 };
 
-
 // Configure PostgreSQL pool with environment variables
 const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL || '',
     ssl: {
-        rejectUnauthorized: true // Changed from false to true for Neon DB
+        rejectUnauthorized: false
     }
 });
 
 // Test database connection
-pool.connect()
-    .then(client => {
-        console.log('✅ Successfully connected to Neon PostgreSQL database');
-        client.release();
-    })
-    .catch(err => {
+pool.connect((err, client, release) => {
+    if (err) {
         console.error('❌ Database connection issue:', err);
-        console.error('Connection string format should be: postgresql://username:password@hostname/database?sslmode=require');
-    });
+        return;
+    }
+    console.log('✅ Database connected successfully');
+    release();
+});
 
 // Database initialization
 const initDB = async () => {
-    const createTableQuery = `
+    const createTablesQueries = [
+        `
         CREATE TABLE IF NOT EXISTS wallet_users (
             id SERIAL PRIMARY KEY,
             wallet_address VARCHAR(42) UNIQUE NOT NULL,
@@ -65,10 +72,34 @@ const initDB = async () => {
             last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_active BOOLEAN DEFAULT true
         );
-    `;
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS user_referral (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(10) UNIQUE NOT NULL,
+            creator_wallet_address VARCHAR(42),
+            used_by_wallet_address VARCHAR(42),
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            used_at TIMESTAMP,
+            is_used BOOLEAN DEFAULT false,
+            is_initial BOOLEAN DEFAULT false
+        );
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_user_referral_code ON user_referral(code);
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_user_referral_creator ON user_referral(creator_wallet_address);
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_user_referral_used_by ON user_referral(used_by_wallet_address);
+        `
+    ];
     
     try {
-        await pool.query(createTableQuery);
+        for (const query of createTablesQueries) {
+            await pool.query(query);
+        }
         console.log('✅ Database initialized successfully');
     } catch (error) {
         console.error('❌ Database initialization error:', error);
@@ -154,12 +185,115 @@ app.post('/api/users/login', async (req, res) => {
     }
 });
 
+// Generate the initial 100 invite codes (Admin endpoint)
+app.post('/api/admin/generate-invite-codes', async (req, res) => {
+    try {
+        // This should be secured with admin authentication in production
+        const adminKey = req.headers['x-admin-key'];
+        if (adminKey !== process.env.ADMIN_API_KEY) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        
+        const codes = await generateInitialInviteCodes();
+        return res.json({ success: true, codes });
+    } catch (error) {
+        console.error('Error generating initial invite codes:', error);
+        return res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
+// Verify an invite code
+app.post('/api/referral/verify', async (req, res) => {
+    try {
+        const { code, walletAddress } = req.body;
+        
+        if (!code || !walletAddress) {
+            return res.status(400).json({ success: false, error: 'Missing required parameters' });
+        }
+        
+        const result = await verifyAndUseInviteCode(code, walletAddress);
+        
+        if (result.valid) {
+            // If valid, generate 3 new invite codes for this user
+            const userCodes = await generateUserInviteCodes(walletAddress);
+            
+            return res.json({ 
+                success: true, 
+                message: result.message,
+                inviteCodes: userCodes
+            });
+        } else {
+            return res.status(400).json({ 
+                success: false, 
+                error: result.message 
+            });
+        }
+    } catch (error) {
+        console.error('Error verifying invite code:', error);
+        return res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
+// Check if user has already verified
+app.get('/api/referral/status/:walletAddress', async (req, res) => {
+    try {
+        const { walletAddress } = req.params;
+        
+        if (!walletAddress) {
+            return res.status(400).json({ success: false, error: 'Wallet address is required' });
+        }
+        
+        const hasUsed = await hasUsedInviteCode(walletAddress);
+        
+        return res.json({ 
+            success: true, 
+            hasUsedInviteCode: hasUsed 
+        });
+    } catch (error) {
+        console.error('Error checking referral status:', error);
+        return res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
+// Get user's invite codes
+app.get('/api/referral/codes/:walletAddress', async (req, res) => {
+    try {
+        const { walletAddress } = req.params;
+        
+        if (!walletAddress) {
+            return res.status(400).json({ success: false, error: 'Wallet address is required' });
+        }
+        
+        const codes = await getUserInviteCodes(walletAddress);
+        
+        return res.json({ 
+            success: true, 
+            codes 
+        });
+    } catch (error) {
+        console.error('Error getting user invite codes:', error);
+        return res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     console.log('💓 Health check requested');
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Placeholder image endpoint
+app.get('/api/placeholder/:width/:height', (req, res) => {
+    const { width, height } = req.params;
+    console.log('🖼️ Placeholder image requested:', { width, height });
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(`
+        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#4CAF50"/>
+            <text x="50%" y="50%" font-family="Arial" font-size="24" fill="white" text-anchor="middle" dy=".3em">🍐</text>
+        </svg>
+    `);
+});
 
 // Handle favicon.ico request
 app.get('/favicon.ico', (req, res) => {
