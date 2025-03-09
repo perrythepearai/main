@@ -2,6 +2,11 @@
 import { CONFIG } from './quest-config.js';
 import { QUEST_PROMPTS } from './quest-prompts.js';
 
+// Import the images directly from the src folder
+// These will be processed by Vite during build
+import perryImage from './Perry.png';
+import userImage from './user.png';
+
 class QuestManager {
     constructor() {
         this.currentEpisode = 1;
@@ -19,51 +24,6 @@ class QuestManager {
             availableChoices: [],
             conversationHistory: []
         };
-        
-        // Try to preload images to see if they exist
-        this.preloadImages();
-    }
-    
-    // Preload images to check if they exist and where they are
-    preloadImages() {
-        const paths = [
-            '/Perry.png', 
-            'Perry.png',
-            '/img/Perry.png',
-            'img/Perry.png',
-            '/images/Perry.png',
-            'images/Perry.png',
-            '/assets/Perry.png',
-            'assets/Perry.png',
-            '/src/Perry.png',
-            'src/Perry.png'
-        ];
-        
-        this.foundPaths = {};
-        
-        paths.forEach(path => {
-            const img = new Image();
-            img.onload = () => {
-                console.log(`✅ Found image at: ${path}`);
-                
-                // Store the first successful path for each type
-                if (path.includes('Perry') && !this.foundPaths.perry) {
-                    this.foundPaths.perry = path;
-                }
-                
-                // Check corresponding user path
-                const userPath = path.replace('Perry', 'user');
-                const userImg = new Image();
-                userImg.onload = () => {
-                    console.log(`✅ Found image at: ${userPath}`);
-                    if (!this.foundPaths.user) {
-                        this.foundPaths.user = userPath;
-                    }
-                };
-                userImg.src = userPath;
-            };
-            img.src = path;
-        });
     }
 
     async initialize() {
@@ -307,10 +267,9 @@ class QuestManager {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}-message`;
         
-        // Use a fallback method if we can't find the image and type isn't system
         if (type !== 'system') {
-            const imageContent = this.createMessageWithAvatar(type, content);
-            messageDiv.innerHTML = imageContent;
+            // Use the createMessageWithAvatar method to generate the message content
+            messageDiv.innerHTML = this.createMessageWithAvatar(type, content);
         } else {
             // For system messages, no avatar needed
             messageDiv.innerHTML = `
@@ -324,25 +283,29 @@ class QuestManager {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
     
-    // A separate method to create message content with avatar
+    // Message content with the imported image paths
     createMessageWithAvatar(type, content) {
-        // If we've found successful image paths through preloading, use them
-        if (this.foundPaths && this.foundPaths[type]) {
+        try {
+            // Use the imported image paths
+            const imgSrc = type === 'perry' ? perryImage : userImage;
+            
             return `
                 <div class="${type}-message-content">
-                    <img src="${this.foundPaths[type]}" class="message-avatar" alt="${type}">
+                    <img src="${imgSrc}" class="message-avatar" alt="${type}">
+                    <span class="message-text">${content}</span>
+                </div>
+            `;
+        } catch (e) {
+            console.error('Error creating avatar:', e);
+            
+            // Fallback to CSS avatar if there's any issue
+            return `
+                <div class="${type}-message-content">
+                    <div class="avatar-circle ${type}-avatar">${type === 'perry' ? 'P' : 'U'}</div>
                     <span class="message-text">${content}</span>
                 </div>
             `;
         }
-        
-        // Otherwise use CSS-based avatars as fallback
-        return `
-            <div class="${type}-message-content">
-                <div class="avatar-circle ${type}-avatar">${type === 'perry' ? 'P' : 'U'}</div>
-                <span class="message-text">${content}</span>
-            </div>
-        `;
     }
 
     async updateUI() {

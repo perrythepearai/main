@@ -160,18 +160,6 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Placeholder image endpoint
-app.get('/api/placeholder/:width/:height', (req, res) => {
-    const { width, height } = req.params;
-    console.log('🖼️ Placeholder image requested:', { width, height });
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.send(`
-        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100%" height="100%" fill="#4CAF50"/>
-            <text x="50%" y="50%" font-family="Arial" font-size="24" fill="white" text-anchor="middle" dy=".3em">🍐</text>
-        </svg>
-    `);
-});
 
 // Handle favicon.ico request
 app.get('/favicon.ico', (req, res) => {

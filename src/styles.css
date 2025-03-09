@@ -22,14 +22,12 @@
 }
 
 /* Global Styles */
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
-
 
 body {
     background-image: url('/back.jpeg');
@@ -39,9 +37,7 @@ body {
     color: var(--color-text-primary);
     min-height: 100vh;
     line-height: 1.6;
-  }
-  
-  
+}
 
 /* Login Page Styles */
 .container {
@@ -58,8 +54,8 @@ body {
 .card {
     background-color: var(--color-surface);
     border-radius: 16px;
-    max-width:90%;
-    width:500px;
+    max-width: 90%;
+    width: 500px;
     padding: 2rem;
     text-align: center;
     box-shadow: var(--elevation-2);
@@ -127,7 +123,133 @@ body {
     font-size: 1.2rem;
 }
 
-/* Rest of the existing dashboard styles remain the same as in the previous artifact */
+/* Split screen login container */
+.login-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #121212 0%, #1E1E1E 30%, #2A2A2A 70%, #252525 100%);
+}
+
+/* Left panel styles */
+.login-left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+/* Right panel styles */
+.login-right-panel {
+  flex: 1.2;
+  background-image: url('/back.jpeg');
+  background-size: cover;
+  background-position: center;
+  border-radius: 20px 0 0 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 150px rgba(138, 79, 255, 0.3);
+}
+
+/* Purple gradient overlay for right panel */
+.login-right-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(138, 79, 255, 0.2) 0%, rgba(98, 0, 238, 0.3) 100%);
+  border-radius: 20px 0 0 20px;
+}
+
+/* Logo container */
+.logo-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.logo-image {
+  width: 60px;
+  height: 60px;
+  margin-right: 1rem;
+  border-radius: 50%;
+}
+
+.logo-text {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+
+/* Login card styles */
+.login-card {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 450px;
+  padding: 2.5rem;
+  box-shadow: var(--elevation-2);
+  transition: all 0.3s ease;
+}
+
+.login-card:hover {
+  box-shadow: var(--elevation-3);
+  transform: translateY(-5px);
+}
+
+.login-heading {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.connect-wallet-btn {
+  width: 100%;
+  padding: 0.9rem;
+  background-color: var(--color-accent-primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.connect-wallet-btn:hover {
+  background-color: var(--color-accent-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--elevation-2);
+}
+
+/* Media query for responsive layout */
+@media (max-width: 992px) {
+  .login-container {
+    flex-direction: column;
+  }
+  
+  .login-right-panel {
+    display: none;
+  }
+  
+  .login-left-panel {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Dashboard Styles */
 .dashboard {
     display: flex;
     flex-direction: column;
@@ -189,57 +311,79 @@ body {
     color: var(--color-accent-primary);
 }
 
+/* Chat Container and Messages */
 .chat-container {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.5rem;
     background-color: var(--color-background-secondary);
 }
 
-/* Message text style */
-.message-text {
-    flex: 1;
-    word-break: break-word;
-  }
-  
-  /* Message content layout with avatars */
-.perry-message-content,
-.user-message-content {
-  display: flex;
-  align-items: flex-start;
+/* Avatar styling */
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    border: 2px solid var(--color-accent-primary);
 }
 
-
-  /* Perry avatar style */
-  .perry-avatar {
-    background-color: var(--color-accent-primary, #8A4FFF);
-    border: 2px solid #6A0DAD;
-  }
-  
-  /* User avatar style */
-  .user-avatar {
-    background-color: #4682B4;
-    border: 2px solid #2E5984;
-  }
-
-  /* Avatar circle styling */
+/* Fallback avatar circles */
 .avatar-circle {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 16px;
     color: white;
-    margin-right: 10px;
+    margin-right: 12px;
     flex-shrink: 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
+}
+
+.perry-avatar {
+    background-color: var(--color-accent-primary);
+    border: 2px solid #6A0DAD;
+}
+
+.user-avatar {
+    background-color: #4682B4;
+    border: 2px solid #2E5984;
+}
+
+/* Message styling */
+.message {
+    max-width: 80%;
+    padding: 0.9rem;
+    border-radius: 18px;
+    line-height: 1.5;
+    margin: 0.5rem 0;
+    word-break: break-word;
+}
+
+.perry-message {
+    background-color: var(--color-surface);
+    align-self: flex-start;
+    box-shadow: var(--elevation-1);
+    margin-left: 0;
+}
+
+.user-message {
+    background-color: var(--color-accent-primary);
+    align-self: flex-end;
+    color: white;
+    margin-right: 0;
+}
+
 .system-message {
     background-color: rgba(138, 79, 255, 0.2);
     color: var(--color-accent-primary);
@@ -248,154 +392,24 @@ body {
     align-self: center;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-}
-
-.action-buttons {
-    background-color: var(--color-surface);
-    padding: 1rem;
-    display: flex;
-    gap: 1rem;
-}
-
-.action-btn {
-    background-color: var(--color-background-tertiary);
-    color: var(--color-text-primary);
-    border: none;
-    border-radius: 20px;
-    padding: 0.75rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-    box-shadow: var(--elevation-1);
-}
-
-.action-btn:hover {
-    background-color: var(--color-accent-primary);
-    color: white;
-    box-shadow: var(--elevation-2);
-}
-
-.response-options {
-    background-color: var(--color-surface);
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.response-option-btn {
-    background-color: var(--color-background-tertiary);
-    color: var(--color-text-primary);
-    border: none;
-    border-radius: 20px;
-    padding: 1rem;
-    text-align: left;
-    transition: all 0.3s ease;
-    box-shadow: var(--elevation-1);
-}
-
-.response-option-btn:hover {
-    background-color: var(--color-accent-primary);
-    color: white;
-    box-shadow: var(--elevation-2);
-}
-
-.progress-modal {
-    position: absolute;
-    bottom: 5rem;
-    left: 1rem;
-    right: 1rem;
-    background-color: var(--color-surface);
-    border-radius: 16px;
-    padding: 1.5rem;
-    display: none;
-    box-shadow: var(--elevation-2);
-    z-index: 100;
-}
-
-.progress-modal.visible {
-    display: block;
-}
-
-.logout-button {
-    background-color: rgba(244, 67, 54, 0.1);
-    color: #f44336;
-    border: none;
-    border-radius: 50%;
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    text-align: center;
+    margin: 0.5rem auto;
+    max-width: 90%;
 }
 
-.logout-button:hover {
-    background-color: rgba(244, 67, 54, 0.2);
+/* Message content layout */
+.perry-message-content,
+.user-message-content {
+    display: flex;
+    align-items: flex-start;
 }
 
-
-
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 8px;
+/* Message text style */
+.message-text {
+    flex: 1;
+    padding: 0.2rem 0;
 }
-
-::-webkit-scrollbar-track {
-    background: var(--color-background-tertiary);
-}
-
-::-webkit-scrollbar-thumb {
-    background-color: var(--color-accent-primary);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-accent-secondary);
-}
-
-
-
-
-
-/* Quest-specific styles to add to existing styles.css */
-
-* Message styling */
-.message {
-  max-width: 80%;
-  padding: 1rem;
-  border-radius: 12px;
-  line-height: 1.5;
-  margin: 0.5rem 0;
-}
-
-.perry-message {
-  background-color: var(--color-surface);
-  align-self: flex-start;
-  box-shadow: var(--elevation-1);
-}
-
-.user-message {
-  background-color: var(--color-accent-primary);
-  align-self: flex-end;
-  color: white;
-}
-
-.system-message {
-  background-color: rgba(138, 79, 255, 0.2);
-  color: var(--color-accent-primary);
-  border-radius: 20px;
-  padding: 0.5rem 1rem;
-  align-self: center;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem auto;
-  max-width: 80%;
-}
-
 
 /* Loading Message */
 .loading-message {
@@ -457,47 +471,126 @@ body {
     transform: translateY(-2px);
 }
 
-/* Message Content Styles */
-.message-content {
+/* Action Buttons */
+.action-buttons {
+    background-color: var(--color-surface);
+    padding: 1rem;
     display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
+    gap: 1rem;
 }
 
-.message-icon {
-    width: 24px;
-    height: 24px;
+.action-btn {
+    background-color: var(--color-background-tertiary);
+    color: var(--color-text-primary);
+    border: none;
+    border-radius: 20px;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--elevation-1);
+}
+
+.action-btn:hover {
+    background-color: var(--color-accent-primary);
+    color: white;
+    box-shadow: var(--elevation-2);
+}
+
+/* Progress Modal */
+.progress-modal {
+    position: absolute;
+    bottom: 5rem;
+    left: 1rem;
+    right: 1rem;
+    background-color: var(--color-surface);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: none;
+    box-shadow: var(--elevation-2);
+    z-index: 100;
+}
+
+.progress-modal.visible {
+    display: block;
+}
+
+/* Logout Button */
+.logout-button {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #121212;
-    border-radius: 50%;
-    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+    background-color: rgba(244, 67, 54, 0.2);
+}
+
+/* Refresh Button */
+.refresh-button {
+    background-color: rgba(138, 79, 255, 0.1);
+    border-radius: 90px;
+    color: var(--color-accent-primary);
+}
+
+/* Buy Token Button Styling */
+.buy-token-btn {
+    background-color: rgba(138, 79, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-accent-primary);
 }
 
 /* Modal Styles */
 .modal {
+    display: none; /* Hidden by default */
     position: fixed;
-    top: 0;
+    z-index: 1000; /* High z-index so it appears above other content */
     left: 0;
+    top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    border-radius: 30px;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent dark background */
 }
 
+/* Modal Content */
 .modal-content {
-    background-color: var(--color-surface);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: var(--elevation-2);
-    max-width: 500px;
-    width: 90%;
-    color: var(--color-text-primary);
+    background-color: #4B0082; /* Dark purple background */
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 60%; /* Narrower width */
+    max-width: 600px;
+    position: relative;
+}
+
+/* Close Button */
+.modal .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: #fff;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal .close:hover,
+.modal .close:focus {
+    color: #ddd;
+    text-decoration: none;
 }
 
 /* Puzzle Interface */
@@ -537,80 +630,20 @@ body {
     background-color: var(--color-accent-secondary);
 }
 
-
-.refresh-button {
-
-    background-color: rgba(138, 79, 255, 0.1);
-border-radius: 90px;
-color: var(--color-accent-primary);
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
 }
 
-/* Buy Token Button Styling */
-.buy-token-btn {
-    background-color: rgba(138, 79, 255, 0.1);
-    color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    margin-right: 10px;
+::-webkit-scrollbar-track {
+    background: var(--color-background-tertiary);
 }
 
-.buy-token-btn:hover {
-    background-color: rgba(138, 79, 255, 0.1);
-    transform: translateY(-2px);
-    box-shadow: var(--elevation-2);
+::-webkit-scrollbar-thumb {
+    background-color: var(--color-accent-primary);
+    border-radius: 4px;
 }
 
-.buy-token-btn .material-icons {
-    font-size: 18px;
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-accent-secondary);
 }
-
-
-/*MODAL 
-/* Modal Background */
-.modal {
-    display: none; /* Hidden by default */
-    position: fixed;
-    z-index: 1000; /* High z-index so it appears above other content */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent dark background */
-  }
-  
-  /* Modal Content */
-  .modal-content {
-    background-color: #4B0082; /* Dark purple background */
-    margin: 5% auto;
-    padding: 20px;
-    border-radius: 8px;
-    width: 60%; /* Narrower width */
-    max-width: 600px;
-    position: relative;
-  }
-  
-  /* Close Button */
-  .modal .close {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    color: #fff;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  
-  .modal .close:hover,
-  .modal .close:focus {
-    color: #ddd;
-    text-decoration: none;
-  }
-  

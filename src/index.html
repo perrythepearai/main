@@ -6,45 +6,46 @@
     <title>PerryPear - Connect Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/api/placeholder/32/32" />
     <link rel="stylesheet" href="/styles.css">
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-GX9C144FWK"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-GX9C144FWK');
-</script>
-
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX9C144FWK"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GX9C144FWK');
+    </script>
 </head>
 <body>
-    <div class="container">
-        <div class="row">
+    <div class="login-container">
+        <!-- Left panel with login form -->
+        <div class="login-left-panel">
+            <!-- Logo and title -->
+            <div class="logo-container">
+                <img src="/Perry.png" alt="Perry the Pear Logo" class="logo-image">
+                <div class="logo-text">Perry The Pear</div>
+            </div>
             
-            
-
-                
-                <div class="card wider-card">
-                    <div class="card-content">
-                        <div class="pear-icon">
-                            <img src="/dick.svg" alt="Pear Icon" class="responsive-img" style="max-width: 60%; max-height: 60%;" />
-                        </div>
-                        <h2 class="card-title">Welcome to PerryPear</h2>
-                        <button id="open-connect-modal" class="btn waves-effect waves-light">
-                            Connect Wallet
-                            <i class="material-icons right">account_balance_wallet</i>
-                        </button>
-                    </div>
-                </div>
-                
-                
-
-            
+            <!-- Login card -->
+            <div class="login-card">
+                <h2 class="login-heading">Welcome to the Garden</h2>
+                <p class="center-align" style="margin-bottom: 2rem; color: var(--color-text-secondary);">
+                    Connect your wallet to begin your journey through the Green Mist
+                </p>
+                <button id="open-connect-modal" class="connect-wallet-btn">
+                    Connect Wallet
+                    <i class="material-icons">account_balance_wallet</i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Right panel with background image and gradient overlay -->
+        <div class="login-right-panel">
+            <!-- The gradient overlay is added via CSS -->
         </div>
     </div>
-
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script type="module" src="/main.js"></script>
