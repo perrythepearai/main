@@ -1,4 +1,3 @@
-// server.js
 import express from 'express';
 import pg from 'pg';
 import cors from 'cors';
@@ -6,13 +5,6 @@ import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config();
 import { fileURLToPath } from 'url';
-import { 
-    generateInitialInviteCodes, 
-    generateUserInviteCodes, 
-    verifyAndUseInviteCode, 
-    hasUsedInviteCode,
-    getUserInviteCodes
-} from './src/referral-service.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -42,27 +34,30 @@ const logError = (error, context) => {
     console.error('=====================');
 };
 
+
 // Configure PostgreSQL pool with environment variables
 const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL || '',
     ssl: {
-        rejectUnauthorized: false
+        rejectUnauthorized: true
     }
 });
 
 // Test database connection
-pool.connect((err, client, release) => {
-    if (err) {
+pool.connect()
+    .then(client => {
+        console.log('✅ Successfully connected to PostgreSQL database');
+        client.release();
+    })
+    .catch(err => {
         console.error('❌ Database connection issue:', err);
-        return;
-    }
-    console.log('✅ Database connected successfully');
-    release();
-});
+        console.error('Connection string format should be: postgresql://username:password@hostname/database?sslmode=require');
+    });
 
 // Database initialization
 const initDB = async () => {
     const createTablesQueries = [
+        // Original wallet_users table
         `
         CREATE TABLE IF NOT EXISTS wallet_users (
             id SERIAL PRIMARY KEY,
@@ -73,6 +68,7 @@ const initDB = async () => {
             is_active BOOLEAN DEFAULT true
         );
         `,
+        // New user_referral table
         `
         CREATE TABLE IF NOT EXISTS user_referral (
             id SERIAL PRIMARY KEY,
@@ -85,6 +81,7 @@ const initDB = async () => {
             is_initial BOOLEAN DEFAULT false
         );
         `,
+        // Indices for user_referral table
         `
         CREATE INDEX IF NOT EXISTS idx_user_referral_code ON user_referral(code);
         `,
@@ -100,7 +97,7 @@ const initDB = async () => {
         for (const query of createTablesQueries) {
             await pool.query(query);
         }
-        console.log('✅ Database initialized successfully');
+        console.log('✅ Database tables initialized successfully');
     } catch (error) {
         console.error('❌ Database initialization error:', error);
         throw error;
@@ -112,7 +109,234 @@ const generateAuthToken = () => {
     return 'tk_' + Math.random().toString(36).substr(2) + Date.now();
 };
 
-// API Routes
+// ===== REFERRAL SYSTEM FUNCTIONS =====
+
+/**
+ * Generate a random invitation code
+ * Format: PEAR-XXXX where X is alphanumeric
+ */
+const generateInviteCode = () => {
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars like O, 0, 1, I
+    let code = 'PEAR-';
+    
+    for (let i = 0; i < 4; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        code += characters.charAt(randomIndex);
+    }
+    
+    return code;
+};
+
+/**
+ * Generate the initial 100 invite codes for admin distribution
+ */
+const generateInitialInviteCodes = async () => {
+    const initialCodes = [];
+    const codesNeeded = 100;
+    
+    try {
+        // Start a transaction
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            // Check how many initial codes we already have
+            const existingCodesResult = await client.query(
+                'SELECT COUNT(*) FROM user_referral WHERE is_initial = true'
+            );
+            
+            const existingCount = parseInt(existingCodesResult.rows[0].count);
+            const remainingToGenerate = Math.max(0, codesNeeded - existingCount);
+            
+            console.log(`Generating ${remainingToGenerate} additional initial invite codes`);
+            
+            // Generate and insert the remaining codes
+            for (let i = 0; i < remainingToGenerate; i++) {
+                let code = generateInviteCode();
+                let isDuplicate = true;
+                
+                // Keep generating until we get a unique code
+                while (isDuplicate) {
+                    const checkResult = await client.query(
+                        'SELECT 1 FROM user_referral WHERE code = $1', [code]
+                    );
+                    
+                    if (checkResult.rows.length === 0) {
+                        isDuplicate = false;
+                    } else {
+                        code = generateInviteCode();
+                    }
+                }
+                
+                // Insert the unique code
+                const result = await client.query(
+                    'INSERT INTO user_referral (code, is_initial) VALUES ($1, true) RETURNING code',
+                    [code]
+                );
+                
+                initialCodes.push(result.rows[0].code);
+            }
+            
+            await client.query('COMMIT');
+            console.log(`Successfully generated ${initialCodes.length} initial invite codes`);
+            
+        } catch (err) {
+            await client.query('ROLLBACK');
+            console.error('Error generating initial invite codes:', err);
+            throw err;
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('Database connection error:', err);
+        throw err;
+    }
+    
+    return initialCodes;
+};
+
+/**
+ * Generate 3 invite codes for a user who has registered
+ */
+const generateUserInviteCodes = async (walletAddress) => {
+    const userCodes = [];
+    
+    try {
+        // Start a transaction
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            // Generate 3 codes for the user
+            for (let i = 0; i < 3; i++) {
+                let code = generateInviteCode();
+                let isDuplicate = true;
+                
+                // Keep generating until we get a unique code
+                while (isDuplicate) {
+                    const checkResult = await client.query(
+                        'SELECT 1 FROM user_referral WHERE code = $1', [code]
+                    );
+                    
+                    if (checkResult.rows.length === 0) {
+                        isDuplicate = false;
+                    } else {
+                        code = generateInviteCode();
+                    }
+                }
+                
+                // Insert the unique code
+                const result = await client.query(
+                    'INSERT INTO user_referral (code, creator_wallet_address) VALUES ($1, $2) RETURNING code',
+                    [code, walletAddress]
+                );
+                
+                userCodes.push(result.rows[0].code);
+            }
+            
+            await client.query('COMMIT');
+            console.log(`Successfully generated 3 invite codes for user: ${walletAddress}`);
+            
+        } catch (err) {
+            await client.query('ROLLBACK');
+            console.error('Error generating user invite codes:', err);
+            throw err;
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('Database connection error:', err);
+        throw err;
+    }
+    
+    return userCodes;
+};
+
+/**
+ * Verify an invite code and mark it as used if valid
+ */
+const verifyAndUseInviteCode = async (code, walletAddress) => {
+    try {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            // Check if the code exists and is not used
+            const checkResult = await client.query(
+                'SELECT id FROM user_referral WHERE code = $1 AND is_used = false',
+                [code]
+            );
+            
+            if (checkResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return { 
+                    valid: false, 
+                    message: 'Invalid or already used invite code' 
+                };
+            }
+            
+            // Mark the code as used
+            await client.query(
+                'UPDATE user_referral SET is_used = true, used_by_wallet_address = $1, used_at = NOW() WHERE code = $2',
+                [walletAddress, code]
+            );
+            
+            await client.query('COMMIT');
+            return { 
+                valid: true, 
+                message: 'Invite code accepted' 
+            };
+            
+        } catch (err) {
+            await client.query('ROLLBACK');
+            console.error('Error verifying invite code:', err);
+            throw err;
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('Database connection error:', err);
+        throw err;
+    }
+};
+
+/**
+ * Check if a user has already used an invite code
+ */
+const hasUsedInviteCode = async (walletAddress) => {
+    try {
+        const result = await pool.query(
+            'SELECT 1 FROM user_referral WHERE used_by_wallet_address = $1 LIMIT 1',
+            [walletAddress]
+        );
+        
+        return result.rows.length > 0;
+    } catch (err) {
+        console.error('Error checking if user has used invite code:', err);
+        throw err;
+    }
+};
+
+/**
+ * Get a user's invite codes
+ */
+const getUserInviteCodes = async (walletAddress) => {
+    try {
+        const result = await pool.query(
+            'SELECT code, is_used, used_by_wallet_address FROM user_referral WHERE creator_wallet_address = $1',
+            [walletAddress]
+        );
+        
+        return result.rows;
+    } catch (err) {
+        console.error('Error getting user invite codes:', err);
+        throw err;
+    }
+};
+
+// ===== API ROUTES =====
+
+// User login endpoint
 app.post('/api/users/login', async (req, res) => {
     console.log('🔐 Login request received:', req.body);
     

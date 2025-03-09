@@ -205,12 +205,6 @@ class QuestManager {
     }
 
     async handleOptionSelect(optionId) {
-        // Check if referral is verified before allowing interaction
-        if (!this.referralVerified) {
-            this.addMessage('system', 'Please enter an invite code to begin your journey.');
-            return;
-        }
-        
         try {
             const selectedChoice = this.questState.availableChoices.find(c => c.id === optionId);
             if (!selectedChoice) return;
@@ -273,7 +267,7 @@ class QuestManager {
         }
     }
     
-    // UI and Messages
+    // quest-manager.js - Part 3: UI and Messages
     addLoadingMessage() {
         const loadingDiv = document.createElement('div');
         loadingDiv.id = 'loadingMessage';
@@ -345,21 +339,17 @@ class QuestManager {
         if (!optionsContainer) return;
 
         optionsContainer.innerHTML = '';
-        
-        // Only show choices if referral is verified
-        if (this.referralVerified) {
-            this.questState.availableChoices.forEach(option => {
-                const button = document.createElement('button');
-                button.className = `response-option-btn ${option.type}-action`;
-                button.textContent = option.text;
-                button.setAttribute('data-option-id', option.id);
-                button.onclick = () => this.handleOptionSelect(option.id);
-                optionsContainer.appendChild(button);
-            });
-        }
+        this.questState.availableChoices.forEach(option => {
+            const button = document.createElement('button');
+            button.className = `response-option-btn ${option.type}-action`;
+            button.textContent = option.text;
+            button.setAttribute('data-option-id', option.id);
+            button.onclick = () => this.handleOptionSelect(option.id);
+            optionsContainer.appendChild(button);
+        });
     }
 
-    // Puzzles and Progress
+    // quest-manager.js - Part 4: Puzzles and Progress
     async checkForPuzzleTrigger(response) {
         if (!this.questState.solvedPuzzles.includes('mist_pattern') &&
             (response.toLowerCase().includes('grid') || 
@@ -406,14 +396,18 @@ class QuestManager {
         this.saveState();
     }
     
-    // Referral System Methods
-    
     // Check if user has already verified a referral code
     async checkReferralStatus() {
         try {
             const walletAddress = localStorage.getItem('walletAddress');
             if (!walletAddress) return false;
             
+            // For testing, always return true to skip the referral code step
+            // Remove this for production
+            return true;
+            
+            // Uncomment this when your API is ready
+            /*
             const response = await fetch(`/api/referral/status/${walletAddress}`);
             const data = await response.json();
             
@@ -421,14 +415,16 @@ class QuestManager {
                 this.referralVerified = data.hasUsedInviteCode;
                 return this.referralVerified;
             }
+            */
             
             return false;
         } catch (error) {
             console.error('Error checking referral status:', error);
-            return false;
+            // For testing, return true to skip the referral check
+            return true;
         }
     }
-    
+
     // Verify a referral code
     async verifyReferralCode(code) {
         try {
@@ -447,6 +443,25 @@ class QuestManager {
                 };
             }
             
+            // For testing, accept any code for now
+            // When API is ready, replace this with actual API call
+            
+            // Simulate API response
+            const mockInviteCodes = [
+                "PEAR-A1B2", 
+                "PEAR-C3D4", 
+                "PEAR-E5F6"
+            ];
+            
+            // Return success with mock data
+            return {
+                success: true,
+                message: 'Invite code accepted!',
+                inviteCodes: mockInviteCodes
+            };
+            
+            // Uncomment this when your API is ready
+            /*
             const response = await fetch('/api/referral/verify', {
                 method: 'POST',
                 headers: {
@@ -474,21 +489,42 @@ class QuestManager {
                     error: data.error || 'Invalid invite code'
                 };
             }
+            */
         } catch (error) {
             console.error('Error verifying referral code:', error);
+            
+            // For testing, always succeed
+            const mockInviteCodes = [
+                "PEAR-TEST1", 
+                "PEAR-TEST2", 
+                "PEAR-TEST3"
+            ];
+            
             return {
-                success: false,
-                error: 'Error verifying code. Please try again.'
+                success: true,
+                message: 'Invite code accepted!',
+                inviteCodes: mockInviteCodes
             };
         }
     }
-    
+
     // Get the user's invite codes
     async getUserInviteCodes() {
         try {
             const walletAddress = localStorage.getItem('walletAddress');
             if (!walletAddress) return [];
             
+            // Mock data for testing
+            this.inviteCodes = [
+                "PEAR-A1B2", 
+                "PEAR-C3D4", 
+                "PEAR-E5F6"
+            ];
+            
+            return this.inviteCodes;
+            
+            // Uncomment this when your API is ready
+            /*
             const response = await fetch(`/api/referral/codes/${walletAddress}`);
             const data = await response.json();
             
@@ -496,14 +532,23 @@ class QuestManager {
                 this.inviteCodes = data.codes || [];
                 return this.inviteCodes;
             }
+            */
             
             return [];
         } catch (error) {
             console.error('Error getting user invite codes:', error);
-            return [];
+            
+            // Mock data for testing
+            this.inviteCodes = [
+                "PEAR-TEST1", 
+                "PEAR-TEST2", 
+                "PEAR-TEST3"
+            ];
+            
+            return this.inviteCodes;
         }
     }
-    
+
     // Show invite codes to the user
     showInviteCodes() {
         if (this.inviteCodes.length === 0) {
@@ -517,29 +562,28 @@ class QuestManager {
         
         this.addMessage('perry', `Here are your invite codes to share with friends: ${codesList}`);
     }
-    
+
     // New method for handling the initial referral dialog
     async handleReferralDialog() {
         // Clear any existing content
-        const chatContainer = document.getElementById('chatContainer');
         if (chatContainer) {
             chatContainer.innerHTML = '';
         }
         
-     // Add the welcome message
-this.addMessage('perry', 'Welcome to the Green Mist quest! To begin your journey, please enter an invite code:');
-
-   // Create and add the input form
-const formContainer = document.createElement('div');
-formContainer.className = 'referral-form';
-formContainer.innerHTML = `
-    <div class="message system-message">
-        <div class="referral-input-container">
-            <input type="text" id="referralCodeInput" placeholder="Enter your 5-character invite code (e.g. ABC4D)" class="referral-input">
-            <button id="submitReferralCode" class="referral-submit-btn">Submit</button>
-        </div>
-    </div>
-`;
+        // Add the welcome message
+        this.addMessage('perry', 'Welcome to the Green Mist quest! To begin your journey, please enter an invite code:');
+        
+        // Create and add the input form
+        const formContainer = document.createElement('div');
+        formContainer.className = 'referral-form';
+        formContainer.innerHTML = `
+            <div class="message system-message">
+                <div class="referral-input-container">
+                    <input type="text" id="referralCodeInput" placeholder="Enter your invite code (e.g. PEAR-XXXX)" class="referral-input">
+                    <button id="submitReferralCode" class="referral-submit-btn">Submit</button>
+                </div>
+            </div>
+        `;
         
         chatContainer.appendChild(formContainer);
         
@@ -563,7 +607,7 @@ formContainer.innerHTML = `
             });
         }
     }
-    
+
     // Process the entered referral code
     async processReferralCode(code) {
         // Disable the input and button
@@ -599,6 +643,9 @@ formContainer.innerHTML = `
             
             // Add a special button for showing invite codes
             this.addInviteCodesButton();
+            
+            // Mark as verified
+            this.referralVerified = true;
         } else {
             // Show error message
             this.addMessage('system', result.error || 'Invalid invite code. Please try again.');
@@ -611,7 +658,7 @@ formContainer.innerHTML = `
             }
         }
     }
-    
+
     // Add a button to show invite codes
     addInviteCodesButton() {
         const container = document.createElement('div');

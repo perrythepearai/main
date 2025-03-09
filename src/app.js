@@ -133,6 +133,12 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
   }
   
   async generateChoices(context) {
+    // Skip generating choices if referral not verified
+    if (!this.referralVerified) {
+      console.log('Skipping choice generation - referral not verified');
+      return;
+    }
+    
     try {
       // Ensure QUEST_PROMPTS is correctly imported and structured
       const choicesPrompt = QUEST_PROMPTS?.aiPromptTemplates?.choiceGeneration?.systemPrompt;
@@ -165,6 +171,12 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
   }
   
   async handleOptionSelect(optionId) {
+    // Prevent interaction if referral not verified
+    if (!this.referralVerified) {
+      this.addMessage('system', 'Please enter an invite code to begin your journey.');
+      return false;
+    }
+    
     // Null and undefined checks
     if (!optionId) {
       this.addMessage('system', 'Invalid option selected');
@@ -180,12 +192,6 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
     this.processingOptions.add(optionId);
     
     try {
-      // Check if referral verification is needed
-      if (!this.referralVerified) {
-        this.addMessage('system', 'Please enter an invite code to continue.');
-        return false;
-      }
-      
       // Network and token service checks
       if (!tokenService) {
         throw new Error('Token service not initialized');
@@ -266,12 +272,125 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
     }
   }
   
-  // Check if user has already verified a referral code
-  async checkReferralStatus() {
+  // Enhanced state saving
+  saveState() {
+    try {
+      const walletAddress = localStorage.getItem('walletAddress');
+      if (!walletAddress) return;
+      
+      // Store state with wallet address as key
+      const stateKey = `questState_${walletAddress.toLowerCase()}`;
+      const state = {
+        ...this.questState,
+        $PEAR: this.$PEAR,
+        referralVerified: this.referralVerified,
+        inviteCodes: this.inviteCodes
+      };
+      
+      localStorage.setItem(stateKey, JSON.stringify(state));
+      console.log('Quest state saved successfully for wallet:', walletAddress);
+    } catch (e) {
+      console.error('Failed to save state:', e);
+    }
+  }
+  
+  // Enhanced state loading
+  async loadSavedState() {
     try {
       const walletAddress = localStorage.getItem('walletAddress');
       if (!walletAddress) return false;
       
+      // Get state with wallet address as key
+      const stateKey = `questState_${walletAddress.toLowerCase()}`;
+      const savedState = localStorage.getItem(stateKey);
+      
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        Object.assign(this.questState, state);
+        this.$PEAR = state.$PEAR || this.$PEAR;
+        this.referralVerified = state.referralVerified || false;
+        this.inviteCodes = state.inviteCodes || [];
+        
+        console.log('Quest state loaded successfully for wallet:', walletAddress);
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      console.warn('Failed to load saved state:', e);
+      return false;
+    }
+  }
+  
+  // Override initialize to handle existing state
+  async initialize() {
+    try {
+      console.log('Initializing Quest Manager...');
+      
+      // Load user-specific saved state
+      const hasState = await this.loadSavedState();
+      
+      // Check referral status
+      await this.checkReferralStatus();
+      
+      // If no saved state or incomplete state and referral verified, generate initial story
+      if ((!hasState || !this.questState.currentPlotPoint) && this.referralVerified) {
+        await this.generateInitialStory();
+      } else if (hasState && this.referralVerified) {
+        // If we have existing state and referral verified, restore the chat history
+        this.restoreChat();
+        
+        // And make sure UI is updated with current choices
+        await this.updateUI();
+      }
+      
+      this.isInitialized = true;
+      return true;
+    } catch (error) {
+      console.error('Initialization failed:', error);
+      return false;
+    }
+  }
+  
+  // Restore chat from saved history
+  restoreChat() {
+    // Clear chat first
+    if (chatContainer) {
+      chatContainer.innerHTML = '';
+    }
+    
+    // Rebuild chat from history
+    if (this.questState.conversationHistory && this.questState.conversationHistory.length > 0) {
+      this.questState.conversationHistory.forEach(message => {
+        this.addMessage(message.type, message.content);
+      });
+    } else if (this.questState.currentPlotPoint) {
+      // If we have a current plot point but no history, just show that
+      this.addMessage('perry', this.questState.currentPlotPoint);
+    }
+  }
+  
+  // Check if user has already verified a referral code
+  async checkReferralStatus() {
+    try {
+      // First check localStorage for referralVerified flag
+      const walletAddress = localStorage.getItem('walletAddress');
+      if (!walletAddress) return false;
+      
+      const stateKey = `questState_${walletAddress.toLowerCase()}`;
+      const savedState = localStorage.getItem(stateKey);
+      
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        if (state.referralVerified) {
+          this.referralVerified = true;
+          return true;
+        }
+      }
+      
+      // If not found in localStorage, check with the server
+      // This is commented out for now since the endpoint doesn't exist yet
+      /*
       const response = await fetch(`/api/referral/status/${walletAddress}`);
       const data = await response.json();
       
@@ -279,7 +398,9 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
         this.referralVerified = data.hasUsedInviteCode;
         return this.referralVerified;
       }
+      */
       
+      // For now, default to false (not verified)
       return false;
     } catch (error) {
       console.error('Error checking referral status:', error);
@@ -305,6 +426,24 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
         };
       }
       
+      // This is a temporary validation since the endpoint doesn't exist yet
+      // We'll accept any code that starts with "PEAR-" for testing
+      if (code.trim().toUpperCase().startsWith('PEAR-')) {
+        this.referralVerified = true;
+        this.inviteCodes = ["PEAR-XYZ1", "PEAR-XYZ2", "PEAR-XYZ3"];
+        
+        // Save to localStorage
+        this.saveState();
+        
+        return {
+          success: true,
+          message: 'Invite code accepted!',
+          inviteCodes: this.inviteCodes
+        };
+      }
+      
+      // When the endpoint is ready, uncomment this
+      /*
       const response = await fetch('/api/referral/verify', {
         method: 'POST',
         headers: {
@@ -321,6 +460,10 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
       if (data.success) {
         this.referralVerified = true;
         this.inviteCodes = data.inviteCodes || [];
+        
+        // Save to localStorage
+        this.saveState();
+        
         return {
           success: true,
           message: 'Invite code accepted!',
@@ -332,33 +475,18 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
           error: data.error || 'Invalid invite code'
         };
       }
+      */
+      
+      return {
+        success: false,
+        error: 'Invalid invite code. It should start with PEAR-'
+      };
     } catch (error) {
       console.error('Error verifying referral code:', error);
       return {
         success: false,
         error: 'Error verifying code. Please try again.'
       };
-    }
-  }
-
-  // Get the user's invite codes
-  async getUserInviteCodes() {
-    try {
-      const walletAddress = localStorage.getItem('walletAddress');
-      if (!walletAddress) return [];
-      
-      const response = await fetch(`/api/referral/codes/${walletAddress}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        this.inviteCodes = data.codes || [];
-        return this.inviteCodes;
-      }
-      
-      return [];
-    } catch (error) {
-      console.error('Error getting user invite codes:', error);
-      return [];
     }
   }
 
@@ -375,7 +503,7 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
     
     this.addMessage('perry', `Here are your invite codes to share with friends: ${codesList}`);
   }
-  
+
   // New method for handling the initial referral dialog
   async handleReferralDialog() {
     // Clear any existing content
@@ -471,6 +599,12 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
 
   // Add a button to show invite codes
   addInviteCodesButton() {
+    // Remove existing button if any
+    const existingContainer = document.querySelector('.invite-codes-container');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+    
     const container = document.createElement('div');
     container.className = 'invite-codes-container';
     container.innerHTML = `
@@ -490,114 +624,6 @@ class EnhancedQuestManager extends originalQuestManager.constructor {
       if (button) {
         button.addEventListener('click', () => this.showInviteCodes());
       }
-    }
-  }
-  
-  // Enhanced state saving
-  saveState() {
-    try {
-      const walletAddress = localStorage.getItem('walletAddress');
-      if (!walletAddress) return;
-      
-      // Store state with wallet address as key
-      const stateKey = `questState_${walletAddress.toLowerCase()}`;
-      const state = {
-        ...this.questState,
-        $PEAR: this.$PEAR,
-        referralVerified: this.referralVerified
-      };
-      
-      localStorage.setItem(stateKey, JSON.stringify(state));
-      console.log('Quest state saved successfully for wallet:', walletAddress);
-    } catch (e) {
-      console.error('Failed to save state:', e);
-    }
-  }
-  
-  // Enhanced state loading
-  async loadSavedState() {
-    try {
-      const walletAddress = localStorage.getItem('walletAddress');
-      if (!walletAddress) return false;
-      
-      // Get state with wallet address as key
-      const stateKey = `questState_${walletAddress.toLowerCase()}`;
-      const savedState = localStorage.getItem(stateKey);
-      
-      if (savedState) {
-        const state = JSON.parse(savedState);
-        Object.assign(this.questState, state);
-        this.$PEAR = state.$PEAR || this.$PEAR;
-        this.referralVerified = state.referralVerified || false;
-        
-        console.log('Quest state loaded successfully for wallet:', walletAddress);
-        return true;
-      }
-      
-      return false;
-    } catch (e) {
-      console.warn('Failed to load saved state:', e);
-      return false;
-    }
-  }
-  
-  // Override initialize to handle existing state and referral verification
-  async initialize() {
-    try {
-      console.log('Initializing Quest Manager...');
-      
-      // Check referral status
-      const isVerified = await this.checkReferralStatus();
-      this.referralVerified = isVerified;
-      
-      if (!this.referralVerified) {
-        console.log('User needs to verify referral code');
-        // We'll handle this in the UI flow
-      } else {
-        // Load user's invite codes
-        await this.getUserInviteCodes();
-      }
-      
-      // Load user-specific saved state
-      const hasState = await this.loadSavedState();
-      
-      // If referral verified and we have state, restore the chat history
-      if (this.referralVerified) {
-        // If no saved state or incomplete state, generate initial story
-        if (!hasState || !this.questState.currentPlotPoint) {
-          await this.generateInitialStory();
-        } else {
-          // If we have existing state, restore the chat history
-          this.restoreChat();
-          
-          // And make sure UI is updated with current choices
-          await this.updateUI();
-        }
-      }
-      
-      this.isInitialized = true;
-      return true;
-    } catch (error) {
-      console.error('Initialization failed:', error);
-      return false;
-    }
-  }
-  
-  // Restore chat from saved history
-  restoreChat() {
-    // Clear chat first
-    if (chatContainer) {
-      chatContainer.innerHTML = '';
-    }
-    
-    // Rebuild chat from history
-    if (this.questState.conversationHistory && this.questState.conversationHistory.length > 0) {
-      this.questState.conversationHistory.forEach(message => {
-        this.addMessage(message.type, message.content);
-      });
-    } else if (this.questState.currentPlotPoint) {
-      // If we have a current plot point but no history, just show that
-      this.addMessage('perry', this.questState.currentPlotPoint);
     }
   }
 }
@@ -692,11 +718,6 @@ async function initializeApp() {
     if (!enhancedQuestManager.referralVerified) {
       await enhancedQuestManager.handleReferralDialog();
     } else {
-      // Welcome message only if this is first-time user
-      if (!localStorage.getItem(`questState_${walletAddress.toLowerCase()}`)) {
-        addSystemMessage('Welcome to the Green Mist quest. The garden awaits your exploration...');
-      }
-      
       // Add the invite codes button for returning users
       enhancedQuestManager.addInviteCodesButton();
     }

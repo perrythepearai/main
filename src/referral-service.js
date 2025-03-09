@@ -11,17 +11,15 @@ const pool = new Pool({
     }
 });
 
-// Update this function in your referral-service.js
-
 /**
  * Generate a random invitation code
- * Format: 5 uppercase alphanumeric characters
+ * Format: PEAR-XXXX where X is alphanumeric
  */
 export const generateInviteCode = () => {
     const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars like O, 0, 1, I
-    let code = '';
+    let code = 'PEAR-';
     
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
         const randomIndex = Math.floor(Math.random() * characters.length);
         code += characters.charAt(randomIndex);
     }
