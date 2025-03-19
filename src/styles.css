@@ -44,7 +44,7 @@
 }
 
 body {
-    background-image: url('/back.jpeg');
+    background-image: url('/perryworld.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -218,7 +218,7 @@ p {
 /* Right panel styles - Material Improvements */
 .login-right-panel {
     flex: 1.2;
-    background-image: url('/back.jpeg');
+    background-image: url('/perryworld.png');
     background-size: cover;
     background-position: center;
     border-radius: 28px 0 0 28px;
@@ -258,7 +258,7 @@ p {
 .logo-text {
     font-size: 1.8rem;
     font-weight: 500;
-    color: var(--color-accent-primary);
+    color: var(--color-text-primary);
     letter-spacing: -0.02em;
 }
 
