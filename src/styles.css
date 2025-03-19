@@ -386,7 +386,7 @@ p {
 
 .logo-text {
     font-weight: 500;
-    color: var(--color-accent-primary);
+    color: var(--color-text-primary);
     font-size: 1.25rem;
 }
 
