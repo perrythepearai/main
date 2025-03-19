@@ -9,8 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@reown/appkit": "^1.6.8",
-    "@reown/appkit-adapter-ethers5": "^1.6.8",
+   
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "ethers": "^5.7.2",

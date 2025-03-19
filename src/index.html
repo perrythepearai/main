@@ -32,12 +32,21 @@
             <div class="login-card">
                 <h2 class="login-heading">Welcome to the Garden</h2>
                 <p class="center-align" style="margin-bottom: 2rem; color: var(--color-text-secondary);">
-                    Connect your wallet to begin your journey through the Green Mist
+                    Connect your MetaMask wallet to begin your journey through the Green Mist
                 </p>
                 <button id="open-connect-modal" class="connect-wallet-btn">
-                    Connect Wallet
+                    Connect with MetaMask
                     <i class="material-icons">account_balance_wallet</i>
                 </button>
+                
+                <!-- MetaMask not installed message (hidden by default) -->
+                <div id="metamask-not-installed" style="display: none; margin-top: 1rem; color: #f44336; text-align: center;">
+                    <p>MetaMask not detected. Please install MetaMask to continue.</p>
+                    <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="btn" style="margin-top: 0.5rem; background-color: #f44336;">
+                        Install MetaMask
+                        <i class="material-icons right">open_in_new</i>
+                    </a>
+                </div>
             </div>
         </div>
         
@@ -45,6 +54,12 @@
         <div class="login-right-panel">
             <!-- The gradient overlay is added via CSS -->
         </div>
+    </div>
+
+    <!-- Connection loading indicator (hidden by default) -->
+    <div id="connection-loading" class="loading-message" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div>Connecting to MetaMask...</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
