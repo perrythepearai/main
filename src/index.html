@@ -17,6 +17,8 @@
       gtag('js', new Date());
       gtag('config', 'G-GX9C144FWK');
     </script>
+    
+   
 </head>
 <body>
     <div class="login-container">
@@ -60,6 +62,28 @@
     <div id="connection-loading" class="loading-message" style="display: none;">
         <div class="loading-spinner"></div>
         <div>Connecting to MetaMask...</div>
+    </div>
+    
+    <!-- Network Switch Modal (hidden by default) -->
+    <div id="network-switch-modal" class="network-modal">
+        <div class="network-modal-content">
+            <div class="network-modal-header">
+                <i class="material-icons">warning</i>
+                <h2 class="network-modal-title">Wrong Network Detected</h2>
+            </div>
+            <div class="network-modal-body">
+                <p>Perry The Pear requires the <strong>Polygon Mainnet</strong> network. Your wallet is currently connected to a different network.</p>
+                <p>Please switch to Polygon to continue.</p>
+            </div>
+            <button id="switch-to-polygon" class="network-switch-btn">
+                <i class="material-icons">swap_horiz</i>
+                Switch to Polygon
+            </button>
+            <button id="close-network-modal" class="close-modal-btn">
+                <i class="material-icons">close</i>
+                Cancel
+            </button>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
